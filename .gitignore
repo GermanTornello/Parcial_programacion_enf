@@ -3,6 +3,7 @@ node_modules/
 dist/
 build/
 coverage/
+*.tsbuildinfo
 
 # Variables de entorno (subir solo .env.example)
 .env
