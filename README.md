@@ -1,6 +1,6 @@
-# SaludTurnos – TP Final Programación III
+# Enfe-Red – TP Final Programación III
 
-Sistema de turnos y vacunación para centros de salud de la región (NestJS + React + MongoDB + Docker).
+Marketplace de enfermería domiciliaria: conecta pacientes con enfermeros/as independientes verificados, con búsqueda por cercanía, solicitudes de servicio, chat y reseñas (NestJS + React + MongoDB + Docker).
 
 ## Integrantes
 - Germán Tornello
@@ -11,9 +11,9 @@ Sistema de turnos y vacunación para centros de salud de la región (NestJS + Re
 ## Estructura
 | Carpeta | Descripción |
 |---|---|
-| `backend/auth-service/` | Microservicio de usuarios, login y roles (puerto 3001) |
-| `backend/turnos-service/` | Microservicio de centros de salud y turnos (puerto 3002) |
-| `backend/vacunas-service/` | Microservicio de vacunas y aplicaciones (puerto 3003) |
+| `backend/usuarios-service/` | Registro/login, perfiles, búsqueda geolocalizada y validación de matrículas (puerto 3001) |
+| `backend/solicitudes-service/` | Catálogo de servicios, solicitudes y chat (puerto 3002) |
+| `backend/resenas-service/` | Reseñas y reputación de los enfermeros (puerto 3003) |
 | `frontend/` | Aplicación React (puerto 5173) |
 | `docker/mongo-init/` | Scripts de inicialización de la base de datos |
 | `docs/` | Documento de problemática, solución y arquitectura |

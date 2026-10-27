@@ -2,9 +2,10 @@
 
 **Grupo:** Germán, Leo, Santiago, Pablo
 **Entrega:** 03/11/2026
-**Proyecto:** "SaludTurnos" – sistema de turnos y vacunación para centros de salud de la región
+**Proyecto:** **Enfe-Red** – marketplace de enfermería domiciliaria
+**Repo:** https://github.com/GermanTornello/Parcial_programacion_enf
 
-> **Cómo usar este mensaje con la IA:** copiá TODO este mensaje y pegáselo a la IA, y agregá al final:
+> **Cómo usar este archivo con la IA:** copiá TODO este archivo y pegáselo a la IA, y agregá al final:
 > *"Soy [tu nombre]. Ayudame a hacer MI parte respetando exactamente el contrato compartido (puertos, endpoints, modelos, roles y nombres de variables)."*
 > El contrato (sección 2) es lo que permite que front y back trabajen en paralelo sin pisarse. **Si alguien necesita cambiarlo, lo avisa en el grupo antes.**
 
@@ -12,48 +13,51 @@
 
 ## 1. La problemática y la solución
 
-**Problema:** en los centros de salud de la región los turnos se piden en persona o por teléfono, hay filas, turnos que se pierden, y el registro de vacunas de cada paciente está en papel (carnet que se pierde, enfermería no sabe qué dosis le faltan).
+**Problema:** conseguir un enfermero/a a domicilio hoy es informal: "boca a boca", grupos de WhatsApp o agencias. Hay demoras, no hay garantía de que el profesional esté matriculado y es difícil resolver necesidades puntuales (una inyección, una curación, un control de signos vitales).
 
-**Solución:** una app web donde:
-- **Pacientes** se registran, buscan centros de salud, sacan/cancelan turnos y ven su **carnet de vacunación digital**.
-- **Enfermería** ve la agenda de turnos del centro, cambia el estado de los turnos (confirmado/atendido) y **registra las vacunas aplicadas**.
-- **Admin** gestiona centros de salud, catálogo de vacunas y usuarios (da de alta enfermeros/as y los asigna a centros).
+**Solución – Enfe-Red:** una plataforma que conecta pacientes con enfermeros/as independientes **verificados**:
+- **Pacientes** buscan enfermeros cerca de su domicilio (por distancia, especialidad y servicio), les **solicitan un servicio** con fecha, hora y dirección, **chatean** con el enfermero cuando acepta y al final **lo califican**.
+- **Enfermeros** se registran con su matrícula, cargan especialidades, servicios que ofrecen, zona y horarios, y gestionan las solicitudes que reciben (aceptar, rechazar, marcar realizada).
+- **Admin** valida las matrículas (nadie aparece en las búsquedas sin estar aprobado), gestiona usuarios y el catálogo de servicios.
 
 ---
 
 ## 2. CONTRATO COMPARTIDO (lo tienen que respetar todos)
 
 ### 2.1 Stack
-- **Backend:** NestJS (TypeScript), `@nestjs/mongoose`, `@nestjs/graphql` + `@nestjs/apollo` (code-first), `@nestjs/swagger`, `@nestjs/jwt` + `passport-jwt`, `class-validator`, `bcrypt`. Tests con Jest + Supertest (vienen con Nest).
-- **Base de datos:** MongoDB (un solo contenedor, **una base por microservicio**: `auth_db`, `turnos_db`, `vacunas_db`).
-- **Frontend:** React + Vite (JavaScript), React Router, Axios. Tests con Vitest + React Testing Library.
+- **Backend:** **NestJS 12** (TypeScript) – crear cada servicio con `npx @nestjs/cli@12 new <nombre>`. Librerías: `@nestjs/mongoose`, `@nestjs/graphql` + `@nestjs/apollo` (code-first), `@nestjs/swagger`, `@nestjs/jwt` + `passport-jwt`, `@nestjs/config`, `class-validator`, `bcrypt`. Tests con **Vitest + Supertest** (vienen con Nest 12) y `mongodb-memory-server` para los e2e.
+- **Base de datos:** MongoDB (un solo contenedor, **una base por microservicio**: `usuarios_db`, `solicitudes_db`, `resenas_db`).
+- **Frontend:** React + Vite (JavaScript), React Router, Axios, **Leaflet + react-leaflet** (mapa con OpenStreetMap, gratis y sin API key). Tests con Vitest + React Testing Library.
 - **Infra:** Docker + docker-compose.
 
-### 2.2 Estructura del repo (monorepo en GitHub)
+### 2.2 Estructura del repo (monorepo)
 ```
 /backend
-   /auth-service     → NestJS, puerto 3001
-   /turnos-service   → NestJS, puerto 3002
-   /vacunas-service  → NestJS, puerto 3003
-/frontend            → React + Vite, puerto 5173
-/docker/mongo-init   → scripts de inicialización de la base (seed)
-docker-compose.yml
+   /usuarios-service     → NestJS, puerto 3001   (Santiago)
+   /solicitudes-service  → NestJS, puerto 3002   (Germán)
+   /resenas-service      → NestJS, puerto 3003   (Santiago)
+/frontend                → React + Vite, puerto 5173  (Pablo y Leo)
+/docker/mongo-init       → scripts de inicialización de la base (Germán)
+docker-compose.yml       (Germán)
 README.md
-docs/DOCUMENTO.md    → documento de problemática + solución + arquitectura
+docs/DOCUMENTO.md        → problemática + solución + arquitectura (Pablo)
 ```
 
 ### 2.3 Microservicios
 
 | Servicio | Puerto | Base | Qué maneja | REST | GraphQL |
 |---|---|---|---|---|---|
-| auth-service | 3001 | auth_db | Usuarios, login, roles, JWT | Sí | No |
-| turnos-service | 3002 | turnos_db | Centros de salud, Turnos | Turnos | **CRUD Centros** |
-| vacunas-service | 3003 | vacunas_db | Catálogo de vacunas, Aplicaciones | Aplicaciones | **CRUD Vacunas** |
+| usuarios-service | 3001 | usuarios_db | Registro/login, perfiles (Paciente, Enfermero, Admin), búsqueda geolocalizada, validación de matrículas | Sí | No |
+| solicitudes-service | 3002 | solicitudes_db | Catálogo de servicios, solicitudes de servicio y sus estados, chat | Solicitudes y mensajes | **CRUD Servicios** |
+| resenas-service | 3003 | resenas_db | Reseñas/calificaciones y reputación de cada enfermero | Solo `GET /` (estado) | **CRUD Reseñas** |
 
-- Cada servicio: Swagger en **`/docs`**, GraphQL (si tiene) en **`/graphql`**, **CORS habilitado**, `ValidationPipe` global (`whitelist: true`).
-- **Autenticación entre servicios:** el JWT lo emite `auth-service`. `turnos-service` y `vacunas-service` lo validan con el **mismo `JWT_SECRET`** (no hace falta llamar a auth-service). Cada servicio tiene su propio `JwtAuthGuard` y `RolesGuard` + decorador `@Roles(...)`.
-- **Payload del JWT:** `{ sub: <userId>, email, rol, nombre }` · expira en 1 día.
-- **Header:** `Authorization: Bearer <token>`.
+- Cada servicio: Swagger en **`/docs`**, GraphQL (si tiene) en **`/graphql`**, **CORS habilitado**, `ValidationPipe` global (`whitelist: true, transform: true`), `GET /` devuelve `{ servicio: '<nombre>', estado: 'ok' }`.
+- **Autenticación:** el JWT lo emite `usuarios-service`. Los otros dos lo validan con el **mismo `JWT_SECRET`**. Cada servicio tiene su `JwtAuthGuard`, `RolesGuard` y decorador `@Roles(...)` (Santiago los arma y se los pasa a Germán). Para GraphQL, el guard toma el request con `GqlExecutionContext`.
+- **Payload del JWT:** `{ sub: <userId>, email, rol, nombre }` (nombre = "Nombre Apellido") · expira en 1 día. **Header:** `Authorization: Bearer <token>`.
+- **Comunicación entre servicios (HTTP con `@nestjs/axios` o `fetch`):**
+  - `solicitudes-service` → `usuarios-service` `GET /enfermeros/:id`: al crear una solicitud verifica que el enfermero exista, esté **verificado**, **disponible** y **ofrezca ese servicio**.
+  - `resenas-service` → `solicitudes-service` `GET /solicitudes/:id` (reenviando el token del paciente): al crear una reseña verifica que la solicitud sea del paciente y esté **REALIZADA**.
+- **IDs:** todas las respuestas devuelven `id` (string), **no `_id`**. Usar en cada schema `toJSON: { virtuals: true, versionKey: false, transform: (_, ret) => { delete ret._id; } }` (y borrar `password` en usuarios).
 
 ### 2.4 Roles
 `PACIENTE` · `ENFERMERO` · `ADMIN` (string exacto, en mayúsculas).
@@ -65,137 +69,194 @@ MONGO_URI=mongodb://mongo:27017/<nombre_db>
 JWT_SECRET=supersecreto_tp_prog3
 PORT=3001 | 3002 | 3003
 
-# Solo auth-service (crea el admin al arrancar si no existe)
-ADMIN_EMAIL=admin@salud.com
+# usuarios-service (crea el admin y usuarios de prueba al arrancar si no existen)
+ADMIN_EMAIL=admin@enfered.com
 ADMIN_PASSWORD=Admin123!
 
+# solicitudes-service
+USUARIOS_URL=http://usuarios-service:3001
+
+# resenas-service
+SOLICITUDES_URL=http://solicitudes-service:3002
+
 # Frontend
-VITE_AUTH_URL=http://localhost:3001
-VITE_TURNOS_URL=http://localhost:3002
-VITE_VACUNAS_URL=http://localhost:3003
+VITE_USUARIOS_URL=http://localhost:3001
+VITE_SOLICITUDES_URL=http://localhost:3002
+VITE_RESENAS_URL=http://localhost:3003
 ```
 
 ### 2.6 Modelos (MongoDB)
 
-**Usuario** (auth_db)
+**Usuario** (usuarios_db) – una sola colección `usuarios` con **herencia usando discriminators de Mongoose** (`rol` es la clave): `Usuario → Paciente`, `Usuario → Enfermero`, `Usuario → Admin`.
+
+Campos comunes (Usuario):
 | campo | tipo | reglas |
 |---|---|---|
 | nombre, apellido | string | requeridos |
 | email | string | requerido, **único** |
+| password | string | bcrypt, **nunca se devuelve** |
+| telefono | string | requerido |
+| direccion | string | requerido |
+| rol | enum | `PACIENTE` · `ENFERMERO` · `ADMIN` |
+
+Solo **Paciente**:
+| campo | tipo | reglas |
+|---|---|---|
 | dni | string | requerido, **único** |
-| password | string | bcrypt, **nunca se devuelve** en las respuestas |
-| rol | enum | `PACIENTE` por defecto |
 | fechaNacimiento | Date | opcional |
+| obraSocial | string | opcional |
+| datosMedicos | string | opcional (alergias, medicación, etc.) |
 
-**Centro** (turnos_db)
+Solo **Enfermero**:
 | campo | tipo | reglas |
 |---|---|---|
-| nombre | string | requerido |
-| direccion, localidad, telefono | string | requeridos (telefono opcional) |
-| especialidades | string[] | ej: `["Clínica", "Pediatría", "Vacunatorio"]` |
-| enfermeros | string[] | ids de usuarios con rol ENFERMERO → **relación muchos-a-muchos** (un enfermero puede trabajar en varios centros) |
+| matricula | string | requerida, **única** |
+| especialidades | string[] | ej: `["Geriatría", "Pediatría", "Heridas"]` |
+| serviciosOfrecidos | string[] | ids de **Servicio** (sección 2.8) → **relación muchos-a-muchos** Enfermero ↔ Servicio |
+| ubicacion | GeoJSON Point | `{ type: 'Point', coordinates: [lng, lat] }` · **índice `2dsphere`** |
+| radioCoberturaKm | number | default 10 |
+| disponible | boolean | default true |
+| disponibilidad | `{ dia: 0-6, desde: 'HH:mm', hasta: 'HH:mm' }[]` | 0 = domingo |
+| descripcion | string | opcional |
+| estadoVerificacion | enum | `PENDIENTE` (default) · `APROBADO` · `RECHAZADO` |
+| motivoRechazo | string | si fue rechazado |
 
-**Turno** (turnos_db)
-| campo | tipo | reglas |
-|---|---|---|
-| pacienteId | string | lo toma del token |
-| pacienteNombre | string | lo toma del token (para mostrar sin consultar otro servicio) |
-| centro | ObjectId ref Centro | requerido, debe existir |
-| fecha | Date | requerida, futura |
-| especialidad | string | debe estar en las especialidades del centro |
-| motivo | string | opcional |
-| estado | enum | `PENDIENTE` (default) · `CONFIRMADO` · `ATENDIDO` · `CANCELADO` |
-
-Regla: un centro no puede tener dos turnos no cancelados en la misma `fecha` + `especialidad` → error **409**.
-
-**Vacuna** (vacunas_db)
+**Servicio** (solicitudes_db) – catálogo
 | campo | tipo | reglas |
 |---|---|---|
 | nombre | string | requerido, **único** |
 | descripcion | string | opcional |
-| dosisRequeridas | number | ≥ 1 |
-| intervaloDias | number | días entre dosis, ≥ 0 |
-| obligatoria | boolean | calendario nacional sí/no |
+| duracionEstimadaMin | number | ≥ 5 |
+| precioReferencia | number | ≥ 0 (solo informativo, no hay pagos) |
+| activo | boolean | default true |
 
-**Aplicacion** (vacunas_db) = vacuna aplicada a un paciente
+**SolicitudServicio** (solicitudes_db)
 | campo | tipo | reglas |
 |---|---|---|
-| pacienteId | string | requerido |
-| pacienteNombre | string | requerido |
-| vacuna | ObjectId ref Vacuna | requerido, debe existir |
-| numeroDosis | number | 1..dosisRequeridas |
-| centroId | string | requerido |
-| enfermeroId | string | lo toma del token |
-| fecha | Date | default hoy |
-| lote | string | requerido |
+| pacienteId, pacienteNombre | string | se toman del token |
+| enfermeroId | string | requerido |
+| enfermeroNombre | string | se toma de la respuesta de usuarios-service |
+| servicio | ObjectId ref Servicio | requerido, activo |
+| fecha | Date | requerida, no puede ser pasada |
+| hora | string | `HH:mm` |
+| direccionAtencion | string | requerida |
+| notas | string | opcional |
+| estado | enum | `PENDIENTE` (default) · `ACEPTADA` · `RECHAZADA` · `CANCELADA` · `REALIZADA` |
+| motivoRechazo | string | opcional |
 
-Regla: no se puede repetir `pacienteId + vacuna + numeroDosis` → error **409**.
+Reglas:
+- Un enfermero no puede tener dos solicitudes `PENDIENTE`/`ACEPTADA` en la misma `fecha` + `hora` → **409**.
+- Transiciones válidas (cualquier otra → **400**):
+  - `PENDIENTE → ACEPTADA` o `RECHAZADA` (solo el enfermero de la solicitud)
+  - `PENDIENTE` o `ACEPTADA → CANCELADA` (el paciente o el enfermero de la solicitud)
+  - `ACEPTADA → REALIZADA` (solo el enfermero de la solicitud)
+
+**Mensaje** (solicitudes_db) – chat de una solicitud (relación 1 a muchos)
+| campo | tipo | reglas |
+|---|---|---|
+| solicitud | ObjectId ref SolicitudServicio | requerido |
+| autorId, autorNombre | string | se toman del token |
+| texto | string | 1 a 1000 caracteres |
+| createdAt | Date | automático (`timestamps: true`) |
+
+Regla: solo leen/escriben el paciente y el enfermero de la solicitud. Solo se puede **enviar** si la solicitud está `ACEPTADA` (si no → 400); leer, siempre.
+
+**Reseña** (resenas_db)
+| campo | tipo | reglas |
+|---|---|---|
+| solicitudId | string | requerido, **único** (máximo una reseña por solicitud) |
+| pacienteId, pacienteNombre | string | se toman del token |
+| enfermeroId | string | se toma de la solicitud |
+| puntuacion | int | 1 a 5 |
+| comentario | string | opcional, máx 500 |
+| createdAt | Date | automático |
 
 ### 2.7 Endpoints
 
-**auth-service (REST, :3001)**
+**usuarios-service (REST, :3001)**
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
-| POST | `/auth/register` | público | Crea un PACIENTE. Body: nombre, apellido, email, dni, password (mín 6), fechaNacimiento? → 409 si email o dni ya existen |
-| POST | `/auth/login` | público | Body: email, password → `{ access_token, user: { id, nombre, apellido, email, rol } }` · 401 si falla |
-| GET | `/auth/me` | logueado | Datos del usuario del token |
-| GET | `/usuarios?rol=&search=` | ENFERMERO, ADMIN | Lista/busca usuarios (search busca en nombre, apellido, dni, email) |
-| GET | `/usuarios/:id` | ENFERMERO, ADMIN | Un usuario |
-| POST | `/usuarios` | ADMIN | Crea usuario con cualquier rol (para dar de alta enfermeros) |
-| PATCH | `/usuarios/:id` | ADMIN | Edita |
-| DELETE | `/usuarios/:id` | ADMIN | Borra |
+| POST | `/auth/register/paciente` | público | Datos comunes + campos de Paciente. 409 si email o dni existen |
+| POST | `/auth/register/enfermero` | público | Datos comunes + matricula, especialidades, serviciosOfrecidos, ubicacion `{lat, lng}`. Queda `PENDIENTE`. 409 si email o matrícula existen |
+| POST | `/auth/login` | público | `{ email, password }` → `{ access_token, user: { id, nombre, apellido, email, rol } }` · 401 si falla |
+| GET | `/auth/me` | logueado | Usuario completo del token (sin password) |
+| PATCH | `/perfil` | logueado | Edita su perfil (campos según su rol; no puede cambiar rol, email ni estadoVerificacion). Enfermero manda ubicación como `{ lat, lng }` |
+| GET | `/enfermeros/buscar?lat=&lng=&radioKm=10&especialidad=&servicioId=&disponible=` | público | Solo `APROBADO`. Usa `$geoNear`, ordenado por distancia. Cada resultado trae `distanciaKm` (1 decimal) |
+| GET | `/enfermeros/:id` | público | Perfil público del enfermero (sin password ni email). 404 si no existe |
+| GET | `/admin/enfermeros?estado=PENDIENTE` | ADMIN | Enfermeros por estado de verificación |
+| PATCH | `/admin/enfermeros/:id/verificacion` | ADMIN | `{ estado: 'APROBADO' \| 'RECHAZADO', motivo? }` |
+| GET | `/admin/usuarios?rol=&search=` | ADMIN | Lista/busca usuarios (nombre, apellido, email) |
+| DELETE | `/admin/usuarios/:id` | ADMIN | Borra un usuario |
 
-**turnos-service – GraphQL Centros (:3002/graphql)**
+**solicitudes-service – GraphQL Servicios (:3002/graphql)**
 ```graphql
-type Centro { id: ID!, nombre: String!, direccion: String!, localidad: String!, telefono: String, especialidades: [String!]!, enfermeros: [String!]! }
+type Servicio { id: ID!, nombre: String!, descripcion: String, duracionEstimadaMin: Int!, precioReferencia: Float!, activo: Boolean! }
 
-query    centros(search: String, localidad: String): [Centro!]!   # público
-query    centro(id: ID!): Centro                                  # público
-mutation createCentro(input: CreateCentroInput!): Centro!         # ADMIN
-mutation updateCentro(id: ID!, input: UpdateCentroInput!): Centro!# ADMIN
-mutation removeCentro(id: ID!): Boolean!                          # ADMIN
-mutation asignarEnfermero(centroId: ID!, enfermeroId: String!): Centro!  # ADMIN (no duplica)
-mutation quitarEnfermero(centroId: ID!, enfermeroId: String!): Centro!   # ADMIN
+query    servicios(search: String, activo: Boolean): [Servicio!]!        # público
+query    servicio(id: ID!): Servicio                                     # público
+mutation createServicio(input: CreateServicioInput!): Servicio!          # ADMIN (409 si el nombre existe)
+mutation updateServicio(id: ID!, input: UpdateServicioInput!): Servicio! # ADMIN
+mutation removeServicio(id: ID!): Boolean!                               # ADMIN
 ```
 
-**turnos-service – REST Turnos (:3002)**
+**solicitudes-service – REST Solicitudes y Mensajes (:3002)**
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
-| POST | `/turnos` | PACIENTE | Body: centroId, fecha, especialidad, motivo? |
-| GET | `/turnos?centroId=&estado=&desde=&hasta=` | logueado | PACIENTE ve solo los suyos; ENFERMERO/ADMIN ven todos. Devuelve el centro populado |
-| GET | `/turnos/:id` | logueado | PACIENTE solo si es suyo (si no, 403) |
-| PATCH | `/turnos/:id/estado` | ENFERMERO, ADMIN | Body: `{ estado }` |
-| PATCH | `/turnos/:id/cancelar` | PACIENTE (el suyo), ADMIN | Pasa a CANCELADO |
-| DELETE | `/turnos/:id` | ADMIN | Borra |
+| POST | `/solicitudes` | PACIENTE | `{ enfermeroId, servicioId, fecha: 'YYYY-MM-DD', hora: 'HH:mm', direccionAtencion, notas? }` |
+| GET | `/solicitudes?estado=&desde=&hasta=` | logueado | PACIENTE: las suyas · ENFERMERO: las que recibió · ADMIN: todas. Con `servicio` populado, más nuevas primero |
+| GET | `/solicitudes/:id` | participante o ADMIN | 403 si no participa · 404 si no existe |
+| PATCH | `/solicitudes/:id/aceptar` | ENFERMERO (el de la solicitud) | |
+| PATCH | `/solicitudes/:id/rechazar` | ENFERMERO (el de la solicitud) | `{ motivo? }` |
+| PATCH | `/solicitudes/:id/cancelar` | participante | |
+| PATCH | `/solicitudes/:id/realizar` | ENFERMERO (el de la solicitud) | |
+| GET | `/solicitudes/:id/mensajes` | participante | Mensajes en orden cronológico |
+| POST | `/solicitudes/:id/mensajes` | participante | `{ texto }` · solo si está `ACEPTADA` |
 
-**vacunas-service – GraphQL Vacunas (:3003/graphql)**
+**resenas-service – GraphQL Reseñas (:3003/graphql)**
 ```graphql
-type Vacuna { id: ID!, nombre: String!, descripcion: String, dosisRequeridas: Int!, intervaloDias: Int!, obligatoria: Boolean! }
+type Resena { id: ID!, solicitudId: String!, pacienteId: String!, pacienteNombre: String!, enfermeroId: String!, puntuacion: Int!, comentario: String, createdAt: DateTime! }
+type Reputacion { enfermeroId: String!, promedio: Float!, cantidad: Int! }
 
-query    vacunas(search: String, obligatoria: Boolean): [Vacuna!]!  # público
-query    vacuna(id: ID!): Vacuna                                    # público
-mutation createVacuna(input: CreateVacunaInput!): Vacuna!           # ADMIN (409 si nombre repetido)
-mutation updateVacuna(id: ID!, input: UpdateVacunaInput!): Vacuna!  # ADMIN
-mutation removeVacuna(id: ID!): Boolean!                            # ADMIN
+query    resenas(enfermeroId: String!): [Resena!]!                    # público, más nuevas primero
+query    resena(id: ID!): Resena                                      # público
+query    misResenas: [Resena!]!                                       # PACIENTE
+query    reputacion(enfermeroId: String!): Reputacion!                # público (promedio 0 y cantidad 0 si no tiene)
+query    reputaciones(enfermeroIds: [String!]!): [Reputacion!]!       # público (para la lista de búsqueda)
+mutation createResena(input: CreateResenaInput!): Resena!             # PACIENTE · input: solicitudId, puntuacion, comentario?
+mutation updateResena(id: ID!, input: UpdateResenaInput!): Resena!    # el autor
+mutation removeResena(id: ID!): Boolean!                              # el autor o ADMIN
 ```
+`createResena`: 400 si la solicitud no está REALIZADA · 403 si no es del paciente · 409 si ya tiene reseña.
 
-**vacunas-service – REST Aplicaciones (:3003)**
-| Método | Ruta | Rol | Descripción |
+### 2.8 Datos iniciales (los usan todos)
+
+**Catálogo de servicios** (lo carga Germán en `/docker/mongo-init`, **con estos `_id` fijos** para que los enfermeros de prueba puedan referenciarlos):
+| _id | nombre | duración (min) | precio ref. |
 |---|---|---|---|
-| POST | `/aplicaciones` | ENFERMERO | Body: pacienteId, pacienteNombre, vacunaId, numeroDosis, centroId, lote, fecha? |
-| GET | `/aplicaciones?pacienteId=&vacunaId=` | ENFERMERO, ADMIN | Lista con filtros, vacuna populada |
-| GET | `/aplicaciones/mias` | PACIENTE | Su carnet de vacunación |
-| GET | `/aplicaciones/carnet/:pacienteId` | ENFERMERO, ADMIN | Carnet de un paciente: por cada vacuna obligatoria → dosis aplicadas / requeridas y si está completa |
-| DELETE | `/aplicaciones/:id` | ADMIN | Borra (corrección de error de carga) |
+| `650000000000000000000001` | Aplicación de inyectable | 15 | 5000 |
+| `650000000000000000000002` | Curación de heridas | 30 | 9000 |
+| `650000000000000000000003` | Control de signos vitales | 20 | 6000 |
+| `650000000000000000000004` | Control de glucemia | 15 | 5000 |
+| `650000000000000000000005` | Cuidados post-operatorios | 60 | 15000 |
+| `650000000000000000000006` | Acompañamiento de adulto mayor | 120 | 20000 |
 
-### 2.8 Errores (formato estándar de Nest)
+**Usuarios de prueba** (los crea `usuarios-service` al arrancar si no existen – Santiago):
+| email | contraseña | rol |
+|---|---|---|
+| admin@enfered.com | Admin123! | ADMIN |
+| paciente@enfered.com | Paciente123! | PACIENTE |
+| enfermera@enfered.com | Enfermera123! | ENFERMERO (APROBADO) |
+| + 3 o 4 enfermeros más APROBADOS, con ubicaciones distintas en nuestra ciudad y distintos servicios/especialidades, para que la búsqueda y el mapa muestren resultados | | |
+
+### 2.9 Errores (formato estándar de Nest)
 `{ "statusCode": 409, "message": "El email ya está registrado", "error": "Conflict" }`
-Usar: 400 validación · 401 sin token / login inválido · 403 rol no permitido · 404 no existe · 409 duplicado. El front muestra `message`.
+400 validación/transición inválida · 401 sin token o login inválido · 403 rol o dueño incorrecto · 404 no existe · 409 duplicado. En GraphQL el error viaja en `errors[0].message`. El front siempre muestra `message`.
 
-### 2.9 Forma de trabajo
-- Rama `main` protegida. Cada uno trabaja en su rama (`feat/auth`, `feat/front-turnos`, etc.) y sube por **Pull Request**; otro del grupo le da un vistazo antes de mergear.
-- Commits chicos y descriptivos, en español.
-- **No subir** `node_modules` ni `.env` (sí un `.env.example`).
+### 2.10 Forma de trabajo con Git
+- Cada uno trabaja en **su rama**: `german`, `santi`, `pablo`, `leo`. Al terminar algo que funciona, abre un **Pull Request a `main`**; otro del grupo le da un vistazo antes de mergear.
+- Para traer lo nuevo de `main` a tu rama: `git checkout <tu-rama>` → `git pull origin main`.
+- Commits chicos y descriptivos, en español. Cada uno toca **solo su carpeta** (salvo que se avise).
+- **No subir** `node_modules`, `dist` ni `.env` (sí `.env.example`).
 
 ---
 
@@ -203,63 +264,68 @@ Usar: 400 validación · 401 sin token / login inválido · 403 rol no permitido
 
 ### 🔧 BACKEND
 
-#### Santiago – auth-service + turnos-service
-1. **auth-service** completo: módulo usuarios + módulo auth, registro/login con bcrypt y JWT, `JwtStrategy`, `JwtAuthGuard`, `RolesGuard`, decorador `@Roles()`, creación al arrancar (si no existen) del admin y de los usuarios de prueba de enfermería y paciente (ver final), Swagger con `@ApiBearerAuth`.
-2. Pasar a Germán (copiar) los archivos de guard/strategy/decorador de roles para que use los mismos en vacunas-service.
-3. **turnos-service**: GraphQL CRUD de Centros (incluye `asignarEnfermero`/`quitarEnfermero` = relación muchos-a-muchos) + REST de Turnos con sus reglas (409 por turno duplicado, paciente solo ve lo suyo).
+#### Santiago – usuarios-service + resenas-service
+1. **usuarios-service**:
+   - Schema `Usuario` con discriminators `Paciente`, `Enfermero`, `Admin` (esto muestra la **herencia** del diagrama de clases).
+   - Registro de paciente y de enfermero, login con bcrypt + JWT, `/auth/me`, `PATCH /perfil`.
+   - `JwtStrategy`, `JwtAuthGuard`, `RolesGuard`, decorador `@Roles()` y decorador `@UsuarioActual()`. **Pasárselos a Germán apenas estén** (los necesita para solicitudes-service).
+   - Búsqueda geolocalizada con `$geoNear` + filtros, perfil público del enfermero.
+   - Admin: validar/rechazar matrículas, listar y borrar usuarios.
+   - Seed al arrancar: admin, paciente y enfermeros de prueba (sección 2.8).
+2. **resenas-service**: GraphQL CRUD de reseñas + `reputacion`/`reputaciones` (con `aggregate`), validando contra solicitudes-service que la solicitud esté REALIZADA.
+3. **Logging:** interceptor que loguee método, ruta, status y tiempo de cada request (con el `Logger` de Nest). Pasárselo a Germán.
 4. **Tests:**
-   - Unit: registrar un usuario con email ya existente → lanza `ConflictException` (mockeando el modelo de Mongoose).
-   - Unit: `asignarEnfermero` agrega el id y no lo duplica si ya estaba (relación muchos-a-muchos).
-   - E2E (Supertest): flujo completo **registro → login → crear turno** con el token.
-5. Logging: un interceptor que loguee método, ruta, status y tiempo de cada request (usar el `Logger` de Nest). Pasárselo a Germán.
+   - Unit: registrar con email ya existente → `ConflictException` (mockeando el modelo).
+   - Unit: al editar el perfil, `serviciosOfrecidos` no guarda ids repetidos (relación muchos-a-muchos).
+   - Unit (reseñas): `createResena` con solicitud no REALIZADA → `BadRequestException` (mockeando la llamada HTTP).
+   - E2E: flujo **registro de enfermero → login → editar perfil**, y que un PACIENTE reciba 403 en `/admin/...`.
 
-#### Germán – repo + vacunas-service + Docker + base de datos
-0. Crear el repo en GitHub con la estructura de la sección 2.2, subir este archivo como `TAREAS_GRUPO.md` e invitar a todos (**primer día**).
-1. **vacunas-service**: GraphQL CRUD de Vacunas + REST de Aplicaciones con sus reglas (409 por dosis repetida, numeroDosis no mayor a dosisRequeridas, endpoint de carnet). Usar los guards/roles que pasa Santiago.
-2. **Docker:** `Dockerfile` para cada servicio y para el frontend + `docker-compose.yml` que levante `mongo`, los 3 servicios y el frontend, con las variables de la sección 2.5. Tiene que andar con un solo `docker compose up --build`.
-3. **Scripts de inicialización** en `/docker/mongo-init/` (se montan en el contenedor de mongo): cargar 3-4 centros de salud de ejemplo en `turnos_db` y el catálogo de vacunas del calendario nacional (BCG, Hepatitis B, Pentavalente, Triple viral, Antigripal, COVID-19, etc.) en `vacunas_db`.
+#### Germán – solicitudes-service + Docker + base de datos
+1. **solicitudes-service**:
+   - GraphQL CRUD de **Servicios** (catálogo).
+   - REST de **Solicitudes**: crear (validando contra usuarios-service), listar según rol, detalle, y las transiciones de estado con sus reglas.
+   - REST de **Mensajes** (chat de la solicitud).
+   - Usar los guards/roles/logging que pasa Santiago.
+2. **Docker:** `Dockerfile` para cada servicio y el frontend + `docker-compose.yml` que levante `mongo`, los 3 servicios y el front con las variables de la sección 2.5. Un solo `docker compose up --build`.
+3. **Scripts de inicialización** en `/docker/mongo-init/`: catálogo de servicios con los `_id` fijos (sección 2.8).
 4. **Tests:**
-   - Unit: crear una vacuna valida los datos y crear una con nombre repetido lanza `ConflictException`.
-   - Unit: registrar una aplicación con `numeroDosis` mayor a `dosisRequeridas` → `BadRequestException`.
-   - E2E: login con token de ENFERMERO → POST `/aplicaciones` → GET `/aplicaciones/carnet/:pacienteId` refleja la dosis. Y un caso de 403 si lo intenta un PACIENTE.
-5. Revisar que los 3 servicios tengan Swagger en `/docs` bien documentado (DTOs con `@ApiProperty`).
+   - Unit: crear un servicio con nombre repetido → `ConflictException`.
+   - Unit: transición inválida (ej. `PENDIENTE → REALIZADA`) → `BadRequestException`.
+   - E2E: paciente crea solicitud → enfermero la acepta → envían mensajes (mockeando usuarios-service); y otro paciente recibe 403 al querer verla.
+5. Revisar que los 3 servicios tengan Swagger en `/docs` bien documentado.
 
 ### 🎨 FRONTEND
 
-#### Pablo – base del front, autenticación y componentes reutilizables
-1. Crear el proyecto `/frontend` con Vite + React, React Router, Axios.
-2. **Capa de API** (`src/api/`): una instancia de Axios por servicio (usando las `VITE_*`), interceptor que agrega el `Authorization: Bearer` y que si recibe 401 desloguea. Helper `graphqlRequest(url, query, variables)` para las queries de GraphQL.
-3. **Autenticación:** `AuthContext` (token + usuario en `localStorage`), páginas **Login** y **Registro** con validación y mensajes de error del back, `ProtectedRoute` que exige estar logueado y opcionalmente un rol (`<ProtectedRoute roles={['ADMIN']}>`).
-4. **Layout:** navbar con menú según el rol, responsive (mobile first), página de inicio pública.
-5. **Componentes reutilizables** (`src/components/`) que va a usar Leo: `DataTable` (columnas + filas + acciones), `FormField` (input + label + error), `Modal`, `SearchBar`, `ConfirmDialog`, `Badge` (para estados), `Spinner`, `Alert`. **Tenerlos listos lo antes posible** para que Leo no se trabe.
-6. **Panel Admin:** gestión de usuarios (listar/buscar, crear enfermero, editar, borrar).
-7. **Tests (Vitest + RTL):** Login muestra error si el back responde 401; `ProtectedRoute` redirige a /login si no hay token; `DataTable` renderiza filas.
-8. **Documentación:** `README.md` (integrantes, problemática, cómo levantar con Docker y sin Docker, usuarios de prueba, decisiones de diseño) y `docs/DOCUMENTO.md` (problemática, solución, diagrama de microservicios). Juntar lo que le pasen los demás.
+#### Pablo – base del front, autenticación, perfiles y admin
+1. Proyecto `/frontend` con Vite + React, React Router, Axios.
+2. **Capa de API** (`src/api/`): una instancia de Axios por servicio (con las `VITE_*`), interceptor que agrega el token y que desloguea ante un 401. Helper `graphqlRequest(url, query, variables)`.
+3. **Autenticación:** `AuthContext` (token + usuario en `localStorage`), Login, Registro con **dos formularios** (paciente / enfermero; el de enfermero avisa que queda pendiente de validación), `ProtectedRoute` con roles opcionales.
+4. **Layout:** navbar con menú según rol, responsive (mobile first), página de inicio pública que explique Enfe-Red.
+5. **Componentes reutilizables** (`src/components/`) para Leo: `DataTable`, `FormField`, `Modal`, `SearchBar`, `ConfirmDialog`, `Badge` (estados), `Spinner`, `Alert`, `StarRating` (mostrar y elegir 1-5). **Tenerlos listos lo antes posible.**
+6. **Mi perfil:** ver/editar. Para enfermero: especialidades, servicios ofrecidos (checkboxes del catálogo GraphQL), ubicación (botón "usar mi ubicación" con `navigator.geolocation`), radio, disponible, horarios, estado de verificación.
+7. **Panel Admin:** validar/rechazar matrículas, usuarios (listar, buscar, borrar), ABM del catálogo de servicios (GraphQL).
+8. **Tests:** Login muestra error ante 401; `ProtectedRoute` redirige a /login sin token; `StarRating` permite elegir puntuación.
+9. **Documentación:** `README.md` (integrantes, problemática, cómo levantar con y sin Docker, usuarios de prueba, decisiones de diseño) y `docs/DOCUMENTO.md` (problemática, solución, diagrama de microservicios). Juntar lo que pasen los demás.
 
-#### Leo – pantallas de turnos, centros y vacunas
-1. **Centros** (GraphQL): listado público con buscador y filtro por localidad; ABM para ADMIN (crear/editar/borrar) y asignar/quitar enfermeros (buscando usuarios con rol ENFERMERO).
-2. **Turnos:**
-   - PACIENTE: "Sacar turno" (elegir centro → especialidad → fecha/hora) y "Mis turnos" con opción de cancelar.
-   - ENFERMERO/ADMIN: agenda con filtros (centro, estado, fechas) y botones para cambiar estado.
-3. **Vacunas:**
-   - Catálogo (GraphQL) con buscador; ABM para ADMIN.
-   - ENFERMERO: "Registrar vacuna" (buscar paciente por DNI con `/usuarios?search=` → elegir vacuna y dosis → lote).
-   - PACIENTE: "Mi carnet de vacunación" (`/aplicaciones/mias`), mostrando qué vacunas obligatorias le faltan.
-4. Usar **siempre** los componentes de Pablo (si falta uno, se lo pide o lo agrega en `src/components/` avisando).
-5. Mientras el back no esté listo, trabajar con datos mock que respeten exactamente los modelos de la sección 2.6.
-6. **Tests (Vitest + RTL):** el formulario de sacar turno valida campos obligatorios; el carnet muestra las vacunas a partir de datos mockeados.
+#### Leo – búsqueda, solicitudes, chat y reseñas
+1. **Buscar enfermeros:** filtros (servicio, especialidad, radio, solo disponibles), ubicación del paciente (geolocalización del navegador o la dirección), **lista de tarjetas + mapa (react-leaflet)** sincronizados, con distancia y estrellas (`reputaciones`).
+2. **Perfil público del enfermero:** datos, servicios, horarios, reputación y reseñas, botón "Solicitar servicio".
+3. **Solicitar servicio:** formulario (servicio de los que ofrece, fecha, hora, dirección, notas) y comprobante.
+4. **Mis solicitudes (paciente):** lista con filtros por estado/fecha, cancelar, abrir chat, **calificar** si está REALIZADA y no tiene reseña.
+5. **Bandeja del enfermero:** solicitudes recibidas con aceptar / rechazar (con motivo) / marcar realizada / cancelar.
+6. **Chat** de la solicitud: polling cada 3 s, mensajes propios a la derecha, solo lectura si no está ACEPTADA.
+7. Usar **siempre** los componentes de Pablo (si falta uno, pedirlo o agregarlo en `src/components/` avisando). Mientras el back no esté, usar datos mock con la forma exacta de la sección 2.6.
+8. **Tests:** el formulario de solicitud valida campos obligatorios; la lista de búsqueda renderiza tarjetas con distancia a partir de datos mock; el chat deshabilita el envío si la solicitud no está ACEPTADA.
 
 ---
 
-## 4. Cronograma (hoy es 26/10, entregamos 03/11)
+## 4. Cronograma (hoy es 27/10, entregamos 03/11)
 
 | Fecha | Objetivo |
 |---|---|
-| **27/10** | Repo creado (Germán). Esqueletos de los 3 servicios y del front. Pablo sube los componentes base. |
-| **28–30/10** | Backend: endpoints funcionando y probados en Swagger. Frontend: auth + pantallas con mocks. |
+| **27/10** | Contrato acordado. Esqueletos de los 3 servicios y del front. Santiago pasa guards/roles. Pablo sube los componentes base. |
+| **28–30/10** | Backend: endpoints funcionando y probados en Swagger / GraphQL. Frontend: auth + pantallas con mocks. |
 | **31/10** | **Integración**: el front consume el back real. docker-compose funcionando. |
 | **01/11** | Tests (back y front) + logging + arreglos. |
 | **02/11** | README, documento, prueba completa desde cero con `docker compose up --build` en la compu de alguien que no lo haya hecho. |
 | **03/11** | Entrega. |
-
-**Usuarios de prueba (los crea auth-service al arrancar):** admin@salud.com / Admin123! · enfermera@salud.com / Enfermera123! · paciente@salud.com / Paciente123!
