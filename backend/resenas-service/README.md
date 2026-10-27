@@ -1,5 +1,5 @@
-# auth-service
+# resenas-service
 
-Usuarios, login y roles (JWT). Puerto 3001.
+Reseñas y reputación de los enfermeros (GraphQL). Puerto 3003.
 
 **Responsable:** Santiago · Ver contrato en [TAREAS_GRUPO.md](../../TAREAS_GRUPO.md).
