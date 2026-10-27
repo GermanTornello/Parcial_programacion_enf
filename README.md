@@ -11,9 +11,9 @@ Sistema de turnos y vacunación para centros de salud de la región (NestJS + Re
 ## Estructura
 | Carpeta | Descripción |
 |---|---|
-| `auth-service/` | Microservicio de usuarios, login y roles (puerto 3001) |
-| `turnos-service/` | Microservicio de centros de salud y turnos (puerto 3002) |
-| `vacunas-service/` | Microservicio de vacunas y aplicaciones (puerto 3003) |
+| `backend/auth-service/` | Microservicio de usuarios, login y roles (puerto 3001) |
+| `backend/turnos-service/` | Microservicio de centros de salud y turnos (puerto 3002) |
+| `backend/vacunas-service/` | Microservicio de vacunas y aplicaciones (puerto 3003) |
 | `frontend/` | Aplicación React (puerto 5173) |
 | `docker/mongo-init/` | Scripts de inicialización de la base de datos |
 | `docs/` | Documento de problemática, solución y arquitectura |

@@ -31,9 +31,10 @@
 
 ### 2.2 Estructura del repo (monorepo en GitHub)
 ```
-/auth-service        → NestJS, puerto 3001
-/turnos-service      → NestJS, puerto 3002
-/vacunas-service     → NestJS, puerto 3003
+/backend
+   /auth-service     → NestJS, puerto 3001
+   /turnos-service   → NestJS, puerto 3002
+   /vacunas-service  → NestJS, puerto 3003
 /frontend            → React + Vite, puerto 5173
 /docker/mongo-init   → scripts de inicialización de la base (seed)
 docker-compose.yml
