@@ -125,14 +125,21 @@ Para que el front y el back encajen, **todos respetamos lo mismo**: los nombres 
 
 | Integrante | Parte | Lo primero que tiene que hacer |
 |---|---|---|
-| **Santiago** | **usuarios-service** (login, roles, perfiles, búsqueda, admin) + **Docker** + scripts de la base de datos | El **login y los guards**: todos los demás dependen de eso. Subirlos el **jueves 30** |
+| **Santiago** | **usuarios-service** (login, roles, perfiles, búsqueda, admin) + **docker-compose** + scripts de la base de datos + límite de intentos en el login | El **login y los guards**: todos los demás dependen de eso. Subirlos el **jueves 30** |
 | **Germán** | **solicitudes-service** (catálogo ✅, solicitudes, chat) + **resenas-service** | Las solicitudes y el chat |
-| **Pablo** | **Base del front**: proyecto, login y registro, rutas protegidas, componentes reutilizables, mi perfil, panel admin + README y documento | Los **componentes reutilizables** (tablas, formularios, modales, estrellas): Leo los usa |
-| **Leo** | **Pantallas principales**: búsqueda con mapa, perfil del enfermero, pedir servicio, mis solicitudes, bandeja, chat, calificar | Las pantallas con **datos de prueba**, sin esperar al back |
+| **Pablo** | **Base del front** a partir del de PP3: capa de API, login y registro, perfil, panel admin, componentes + **todos los tests del front** | Copiar el front de PP3, **borrar lo que no va y adaptar la capa de API**: Leo depende de eso |
+| **Leo** | **Pantallas principales** adaptadas del front de PP3: búsqueda con mapa, perfil del enfermero, pedir servicio, mis solicitudes, bandeja, chat, calificar + **README y documento** | Adaptar búsqueda, solicitudes y chat a la API nueva, **con datos de prueba** si el back no está |
+
+Además, **cada uno hace el `Dockerfile` de lo suyo** y en sus servicios pone `helmet` (seguridad).
 
 El detalle de cada tarea, los tests y los nombres exactos están en la sección 3 de [TAREAS_GRUPO.md](TAREAS_GRUPO.md).
 
 ---
+
+### ¿Hacemos todo de cero?
+
+- **El backend sí**: la consigna pide NestJS, MongoDB y microservicios, y la Enfered de PP3 estaba en Flask. Del código de PP3 solo tomamos **las reglas** (qué se valida, qué está permitido), no el código.
+- **El frontend no**: el de PP3 ya usa React + Vite + axios + react-router + react-leaflet, justo lo que pide el TP, y tiene casi todas las pantallas. **Lo copiamos y lo adaptamos a este contrato**: se cambia la capa que le habla al backend y se **borra** lo que no existe en el TP (pagos, notificaciones, IA, etc.). En el README lo aclaramos.
 
 ### ¿Cómo se ve?
 
@@ -173,8 +180,8 @@ Pasale a la IA **este archivo y [TAREAS_GRUPO.md](TAREAS_GRUPO.md)** y escribile
 | Fecha | Objetivo |
 |---|---|
 | **Miércoles 29/10** | Todos arrancan su parte y suben lo que tengan |
-| **Jueves 30/10** | **Santiago sube login, roles y guards.** Pablo, los componentes base |
-| **Viernes 31/10** | Juntamos todo: el front usa el back de verdad. Docker funcionando |
+| **Jueves 30/10** | **Santiago sube login, roles y guards.** Pablo copia el front de PP3 y adapta la capa de API |
+| **Viernes 31/10** | Juntamos todo: el front usa el back de verdad. Cada uno sube su Dockerfile y **probamos `docker compose up --build`** |
 | **Sábado 1/11** | Tests y arreglos |
 | **Domingo 2/11** | README, documento y prueba completa desde cero |
 | **Lunes 3/11** | **Entrega** |
