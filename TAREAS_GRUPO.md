@@ -306,7 +306,7 @@ Ubicación de los enfermeros de prueba (todos **APROBADOS**, con distintos servi
 
 ### 🔧 BACKEND
 
-#### Santiago – usuarios-service + Docker + base de datos (~25%)
+#### Santiago – usuarios-service + Docker + base de datos
 1. **usuarios-service** (lo primero, porque todos dependen de esto):
    - `JwtStrategy`, `JwtAuthGuard`, `RolesGuard`, decorador `@Roles()` y decorador `@UsuarioActual()`. **Subirlos el jueves 30/10** y avisar en el grupo: Germán los usa en sus dos servicios.
    - Schema `Usuario` con discriminators `Paciente`, `Enfermero`, `Admin` (esto muestra la **herencia** del diagrama de clases).
@@ -322,7 +322,7 @@ Ubicación de los enfermeros de prueba (todos **APROBADOS**, con distintos servi
    - Unit: al editar el perfil, `serviciosOfrecidos` no guarda ids repetidos (relación muchos-a-muchos).
    - E2E: flujo **registro de enfermero → login → editar perfil**, y que un PACIENTE reciba 403 en `/admin/...`.
 
-#### Germán – solicitudes-service + resenas-service (~25%)
+#### Germán – solicitudes-service + resenas-service
 1. **solicitudes-service**:
    - GraphQL CRUD de **Servicios** (catálogo). ✅ **Hecho, con tests.**
    - REST de **Solicitudes**: crear (validando contra usuarios-service), listar según rol, detalle, y las transiciones de estado con sus reglas.
