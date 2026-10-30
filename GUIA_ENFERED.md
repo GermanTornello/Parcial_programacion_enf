@@ -1,18 +1,18 @@
-# Enfe-Red explicado fácil
+# Enfered explicado fácil
 
 Esta guía explica **qué vamos a construir y cómo**, sin dar nada por sabido. Leela entera una vez (son 10 minutos) y después usá [TAREAS_GRUPO.md](TAREAS_GRUPO.md) como referencia técnica para tu parte.
 
 ---
 
-## 1. ¿Qué es Enfe-Red?
+## 1. ¿Qué es Enfered?
 
-Es una página web que **conecta pacientes con enfermeros/as que atienden a domicilio**. Pensalo como *PedidosYa o Uber, pero de enfermería*:
+Es una página web que **conecta pacientes con enfermeros/as que atienden a domicilio**, en la provincia de **Mendoza**. Pensalo como *PedidosYa o Uber, pero de enfermería*:
 
 - Alguien necesita, por ejemplo, que le apliquen una inyección en su casa.
-- Entra a Enfe-Red, **busca enfermeros cerca de su domicilio**, elige uno, le **pide el servicio** para un día y hora.
+- Entra a Enfered, **busca enfermeros cerca de su domicilio**, elige uno, le **pide el servicio** para un día y hora.
 - El enfermero **acepta**, se **escriben por chat** para coordinar, va a la casa, y al final el paciente lo **califica con estrellas**.
 
-¿Qué problema resuelve? Hoy esto se hace por "boca a boca" o grupos de WhatsApp: no sabés si el enfermero está matriculado, tarda en conseguirse y no hay opiniones de otros pacientes. En Enfe-Red **solo aparecen enfermeros con la matrícula validada** por un administrador.
+¿Qué problema resuelve? Hoy esto se hace por "boca a boca" o grupos de WhatsApp: no sabés si el enfermero está matriculado, tarda en conseguirse y no hay opiniones de otros pacientes. En Enfered **solo aparecen enfermeros con la matrícula validada** por un administrador.
 
 ---
 
@@ -41,7 +41,7 @@ Ana necesita un control de glucemia. Laura es enfermera.
 | 5 | Ana busca "Control de glucemia" cerca de su casa y ve a Laura en la lista y en el mapa, con su distancia y sus estrellas | Buscar enfermeros (Leo) | usuarios-service (Santiago) + resenas-service (Germán) |
 | 6 | Ana le pide el servicio para el jueves a las 10. La solicitud queda **PENDIENTE** | Solicitar servicio (Leo) | solicitudes-service (Germán) |
 | 7 | Laura ve el pedido en su bandeja y lo **ACEPTA** | Bandeja del enfermero (Leo) | solicitudes-service (Germán) |
-| 8 | Se escriben por **chat** para coordinar la dirección | Chat (Leo) | solicitudes-service (Germán) |
+| 8 | Se escriben por **chat** para coordinar la dirección (el chat ya estaba abierto desde el paso 6) | Chat (Leo) | solicitudes-service (Germán) |
 | 9 | Laura va, hace el control y marca la solicitud como **REALIZADA** | Bandeja del enfermero (Leo) | solicitudes-service (Germán) |
 | 10 | Ana le deja **5 estrellas** y un comentario | Mis solicitudes → Calificar (Leo) | resenas-service (Germán) |
 
@@ -58,7 +58,7 @@ stateDiagram-v2
     REALIZADA --> [*]: el paciente puede calificar
 ```
 
-El chat solo funciona mientras la solicitud está **ACEPTADA**.
+El chat funciona mientras la solicitud está **PENDIENTE** o **ACEPTADA**: así el paciente puede consultar antes de que el enfermero acepte. Cuando la solicitud se cierra, queda para leer.
 
 ---
 
@@ -131,6 +131,12 @@ Para que el front y el back encajen, **todos respetamos lo mismo**: los nombres 
 | **Leo** | **Pantallas principales**: búsqueda con mapa, perfil del enfermero, pedir servicio, mis solicitudes, bandeja, chat, calificar | Las pantallas con **datos de prueba**, sin esperar al back |
 
 El detalle de cada tarea, los tests y los nombres exactos están en la sección 3 de [TAREAS_GRUPO.md](TAREAS_GRUPO.md).
+
+---
+
+### ¿Cómo se ve?
+
+Todo el front sigue **la misma identidad visual**: colores, tipografía, botones, colores por estado y versión para celular. Está en la **sección 2.11 de [TAREAS_GRUPO.md](TAREAS_GRUPO.md)**. Así la app parece hecha por una sola persona y no por cuatro. Los textos van **en voseo**: "Buscá", "Iniciá sesión", "Tenés".
 
 ---
 
