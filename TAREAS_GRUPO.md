@@ -27,9 +27,10 @@
 ## 2. CONTRATO COMPARTIDO (lo tienen que respetar todos)
 
 ### 2.1 Stack
-- **Backend:** **NestJS 12** (TypeScript) – crear cada servicio con `npx @nestjs/cli@12 new <nombre>`. Librerías: `@nestjs/mongoose`, `@nestjs/graphql` + `@nestjs/apollo` (code-first), `@nestjs/swagger`, `@nestjs/jwt` + `passport-jwt`, `@nestjs/config`, `class-validator`, `bcrypt`. Tests con **Vitest + Supertest** (vienen con Nest 12) y `mongodb-memory-server` para los e2e.
+- **Backend:** **NestJS 12** (TypeScript) – crear cada servicio con `npx @nestjs/cli@12 new <nombre>`. Librerías: `@nestjs/mongoose`, `@nestjs/graphql` + `@nestjs/apollo` (code-first), `@nestjs/swagger`, `@nestjs/jwt` + `passport-jwt`, `@nestjs/config`, `class-validator`, `bcrypt`, **`helmet`** (en los 3 servicios) y **`@nestjs/throttler`** (límite de intentos en el login). Tests con **Vitest + Supertest** (vienen con Nest 12) y `mongodb-memory-server` para los e2e.
 - **Base de datos:** MongoDB (un solo contenedor, **una base por microservicio**: `usuarios_db`, `solicitudes_db`, `resenas_db`).
 - **Frontend:** React + Vite (JavaScript), React Router, Axios, **Leaflet + react-leaflet** (mapa con OpenStreetMap, gratis y sin API key), centrado por defecto en **Mendoza capital** (`-32.8895, -68.8458`). Diseño y textos según la **sección 2.11**. Tests con Vitest + React Testing Library.
+- **Origen del frontend:** **no se hace de cero.** Partimos del front de **Enfered de Práctica Profesionalizante 3** (mismas tecnologías: React + Vite + axios + react-router + react-leaflet, ~50 componentes) y lo **adaptamos a este contrato**: se reescribe la capa de API para las 3 URLs, GraphQL y estas rutas. Lo que no tiene backend en el TP **se borra** (ver sección 3). El `README.md` tiene que **declarar** que el front parte del de Enfered (PP3). El backend sí se escribe de cero en NestJS: del código de PP3 solo se toman **las reglas**, no el código (era Flask).
 - **Infra:** Docker + docker-compose.
 
 ### 2.2 Estructura del repo (monorepo)
@@ -40,7 +41,7 @@
    /resenas-service      → NestJS, puerto 3003   (Germán)
 /frontend                → React + Vite, puerto 5173  (Pablo y Leo)
 /docker/mongo-init       → scripts de inicialización de la base (Santiago)
-docker-compose.yml       (Santiago)
+docker-compose.yml       (Santiago) · cada uno hace el Dockerfile de lo suyo
 README.md
 docs/DOCUMENTO.md        → problemática + solución + arquitectura (Pablo)
 ```
@@ -306,7 +307,7 @@ Ubicación de los enfermeros de prueba (todos **APROBADOS**, con distintos servi
 
 ### 🔧 BACKEND
 
-#### Santiago – usuarios-service + Docker + base de datos
+#### Santiago – usuarios-service + docker-compose + base de datos
 1. **usuarios-service** (lo primero, porque todos dependen de esto):
    - `JwtStrategy`, `JwtAuthGuard`, `RolesGuard`, decorador `@Roles()` y decorador `@UsuarioActual()`. **Subirlos el jueves 30/10** y avisar en el grupo: Germán los usa en sus dos servicios.
    - Schema `Usuario` con discriminators `Paciente`, `Enfermero`, `Admin` (esto muestra la **herencia** del diagrama de clases).
@@ -314,13 +315,16 @@ Ubicación de los enfermeros de prueba (todos **APROBADOS**, con distintos servi
    - Búsqueda geolocalizada con `$geoNear` + filtros, perfil público del enfermero.
    - Admin: validar/rechazar matrículas, listar y borrar usuarios.
    - Seed al arrancar: admin, paciente y enfermeros de prueba (sección 2.8).
+   - Las reglas se pueden tomar de `usuario_routes.py`, `admin_routes.py` y `mapa_routes.py` de Enfered (PP3), reescritas en NestJS.
 2. **Logging:** interceptor que loguee método, ruta, status y tiempo de cada request (con el `Logger` de Nest). Pasárselo a Germán.
-3. **Docker:** `Dockerfile` para cada servicio y el frontend + `docker-compose.yml` que levante `mongo`, los 3 servicios y el front con las variables de la sección 2.5. Un solo `docker compose up --build`.
-4. **Scripts de inicialización** en `/docker/mongo-init/`: catálogo de servicios con los `_id` fijos (sección 2.8).
-5. **Tests:**
+3. **Seguridad (extras):** `helmet` en usuarios-service y **`@nestjs/throttler`** en el login.
+4. **Docker:** el `Dockerfile` de usuarios-service + el **`docker-compose.yml`** que levante `mongo`, los 3 servicios y el front con las variables de la sección 2.5. Un solo `docker compose up --build`. **Probarlo el 31/10.**
+5. **Scripts de inicialización** en `/docker/mongo-init/`: catálogo de servicios con los `_id` fijos (sección 2.8).
+6. **Tests:**
+   - Unit: **validación al crear** (registrar con datos inválidos, por ejemplo un enfermero sin matrícula → error de validación).
    - Unit: registrar con email ya existente → `ConflictException` (mockeando el modelo).
    - Unit: al editar el perfil, `serviciosOfrecidos` no guarda ids repetidos (relación muchos-a-muchos).
-   - E2E: flujo **registro de enfermero → login → editar perfil**, y que un PACIENTE reciba 403 en `/admin/...`.
+   - E2E: flujo **registro → login → crear un recurso con el token**, y que un PACIENTE reciba 403 en `/admin/...`.
 
 #### Germán – solicitudes-service + resenas-service
 1. **solicitudes-service**:
@@ -329,45 +333,50 @@ Ubicación de los enfermeros de prueba (todos **APROBADOS**, con distintos servi
    - REST de **Mensajes** (chat de la solicitud).
 2. **resenas-service**: GraphQL CRUD de reseñas + `reputacion`/`reputaciones` (con `aggregate`), validando contra solicitudes-service que la solicitud esté REALIZADA.
 3. Usar los guards/roles/logging que pasa Santiago. Si el jueves 30/10 no están, armarlos en sus servicios siguiendo el contrato (sección 2.3) para no frenarse.
-4. **Tests:**
+4. **Seguridad (extras):** `helmet` en sus dos servicios.
+5. **Docker:** el `Dockerfile` de solicitudes-service y el de resenas-service.
+6. **Tests:**
    - Unit: crear un servicio con nombre repetido → `ConflictException`. ✅
    - Unit: transición inválida (ej. `PENDIENTE → REALIZADA`) → `BadRequestException`.
    - Unit (reseñas): `createResena` con solicitud no REALIZADA → `BadRequestException` (mockeando la llamada HTTP).
    - E2E: CRUD GraphQL de servicios ✅; paciente crea solicitud → enfermero la acepta → envían mensajes (mockeando usuarios-service); y otro paciente recibe 403 al querer verla.
-5. Revisar que los 3 servicios tengan Swagger en `/docs` bien documentado.
+7. Revisar que los 3 servicios tengan Swagger en `/docs` bien documentado.
 
-### 🎨 FRONTEND
+### 🎨 FRONTEND (partimos del front de Enfered de PP3)
 
-#### Pablo – base del front, autenticación, perfiles y admin
-1. Proyecto `/frontend` con Vite + React, React Router, Axios.
-2. **Capa de API** (`src/api/`): una instancia de Axios por servicio (con las `VITE_*`), interceptor que agrega el token y que desloguea ante un 401. Helper `graphqlRequest(url, query, variables)`.
-3. **Autenticación:** `AuthContext` (token + usuario en `localStorage`), Login, Registro con **dos formularios** (paciente / enfermero; el de enfermero avisa que queda pendiente de validación), `ProtectedRoute` con roles opcionales.
-4. **Layout:** navbar con menú según rol, responsive (mobile first), página de inicio pública que explique Enfered. **Seguir la identidad visual de la sección 2.11.**
-5. **Componentes reutilizables** (`src/components/`) para Leo: `DataTable`, `FormField`, `Modal`, `SearchBar`, `ConfirmDialog`, `Badge` (estados), `Spinner`, `Alert`, `StarRating` (mostrar y elegir 1-5). **Tenerlos listos lo antes posible.**
-6. **Mi perfil:** ver/editar. Para enfermero: especialidades, servicios ofrecidos (checkboxes del catálogo GraphQL), departamento, años de experiencia, tarifa por hora, ubicación (botón "usar mi ubicación" con `navigator.geolocation`), radio, disponible, horarios, estado de verificación.
-7. **Panel Admin:** validar/rechazar matrículas, usuarios (listar, buscar, borrar), ABM del catálogo de servicios (GraphQL).
-8. **Tests:** Login muestra error ante 401; `ProtectedRoute` redirige a /login sin token; `StarRating` permite elegir puntuación.
-9. **Documentación:** `README.md` (integrantes, problemática, cómo levantar con y sin Docker, usuarios de prueba, decisiones de diseño) y `docs/DOCUMENTO.md` (problemática, solución, diagrama de microservicios). Juntar lo que pasen los demás.
+**Qué se borra del front de PP3** porque no tiene backend en el TP: búsqueda con IA (`BusquedaAsistida`), notificaciones (`Notificaciones`), auditoría (`AdminAuditoria`), recuperar contraseña (`RecuperarPassword`), aviso de cookies (`AvisoCookies`), **pagos** ("Ya pagué" / "Me llegó el pago"), **reprogramar** (`ReprogramarSolicitud`), **franjas horarias con estado** (`GestionHorarios`), compartir la ubicación del paciente (`LugarAtencionPaciente`, `UbicacionAtencion`), "Mi cuenta" (exportar o borrar la cuenta), denuncias de reseñas y que el enfermero califique al paciente. **Se borra, no se esconde**: así no queda código muerto.
 
-#### Leo – búsqueda, solicitudes, chat y reseñas
-1. **Buscar enfermeros:** filtros (servicio, especialidad, departamento, radio, solo disponibles), mapa centrado en Mendoza, ubicación del paciente (geolocalización del navegador o la dirección), **lista de tarjetas + mapa (react-leaflet)** sincronizados, con distancia y estrellas (`reputaciones`).
-2. **Perfil público del enfermero:** datos, servicios, horarios, reputación y reseñas, botón "Solicitar servicio".
-3. **Solicitar servicio:** formulario (servicio de los que ofrece, fecha, hora, dirección, notas) y comprobante.
-4. **Mis solicitudes (paciente):** lista con filtros por estado/fecha, cancelar, abrir chat, **calificar** si está REALIZADA y no tiene reseña.
-5. **Bandeja del enfermero:** solicitudes recibidas con aceptar / rechazar (con motivo) / marcar realizada / cancelar.
-6. **Chat** de la solicitud: polling cada 3 s, mensajes propios a la derecha, solo lectura si no está ACEPTADA.
-7. Seguir la **identidad visual de la sección 2.11** y usar **siempre** los componentes de Pablo (si falta uno, pedirlo o agregarlo en `src/components/` avisando). Mientras el back no esté, usar datos mock con la forma exacta de la sección 2.6.
-8. **Tests:** el formulario de solicitud valida campos obligatorios; la lista de búsqueda renderiza tarjetas con distancia a partir de datos mock; el chat deshabilita el envío si la solicitud no está ACEPTADA.
+#### Pablo – base del front, API, autenticación, perfiles, admin y tests
+1. **Copiar el front de Enfered (PP3)** a `/frontend` y borrar lo de la lista de arriba. **Es lo primero: Leo depende de esto.**
+2. **Capa de API** (`src/api.js` y `src/services/`): reescribirla para el contrato. Una instancia de Axios por servicio (con las `VITE_*`), interceptor que agrega el token y que desloguea ante un 401, helper `graphqlRequest(url, query, variables)` para servicios y reseñas, rutas y métodos de la sección 2.7 (por ejemplo, `PATCH /solicitudes/:id/realizar` en vez de `PUT .../finalizar`) y `id` en vez de los ids de SQL.
+3. **Autenticación:** Login y Registro (paciente / enfermero) adaptados al contrato; `ProtectedRoute` con roles.
+4. **Layout y componentes reutilizables:** los de PP3, revisados con la identidad visual de la **sección 2.11**.
+5. **Mi perfil:** ver/editar. Para enfermero: especialidades, servicios ofrecidos (catálogo GraphQL), departamento, años de experiencia, tarifa por hora, ubicación, radio, disponible, horarios, estado de verificación.
+6. **Panel Admin:** validar/rechazar matrículas, usuarios (listar, buscar, borrar), ABM del catálogo de servicios (GraphQL).
+7. **Docker:** el `Dockerfile` del frontend.
+8. **Tests de todo el front** (Vitest + React Testing Library; el front de PP3 no trae tests de componentes):
+   - Login muestra error ante 401; `ProtectedRoute` redirige a /login sin token; el selector de estrellas permite elegir puntuación.
+   - El formulario de solicitud valida campos obligatorios; la lista de búsqueda muestra tarjetas con distancia a partir de datos de prueba; el chat deshabilita el envío si la solicitud no está `PENDIENTE` ni `ACEPTADA`.
+
+#### Leo – búsqueda, solicitudes, chat, reseñas y documentación
+1. **Adaptar a la API nueva** las pantallas de PP3 (con datos de prueba mientras el back no esté):
+   - **Buscar enfermeros** (`ListaEnfermeros`, `MapaEnfermeros`, `DirectoryFilters`): filtros (servicio, especialidad, departamento, radio, solo disponibles), mapa centrado en Mendoza, distancia y estrellas (`reputaciones`).
+   - **Perfil público del enfermero** (`PerfilEnfermero`, `ResenasProfesional`): datos, servicios, horarios, reputación y reseñas, botón "Solicitar servicio".
+   - **Solicitar servicio** (`SolicitarServicio`, `ConfirmacionSolicitud`): servicio, fecha, hora, dirección, notas y comprobante.
+   - **Mis solicitudes** (paciente): filtros por estado/fecha, cancelar, abrir chat, **calificar** si está REALIZADA y no tiene reseña.
+   - **Bandeja del enfermero** (`SolicitudesEnfermero`): aceptar / rechazar (con motivo) / marcar realizada / cancelar (con motivo obligatorio).
+   - **Chat** (`ChatServicio`): polling cada 3 s, solo lectura si no está `PENDIENTE` ni `ACEPTADA`.
+2. En esas pantallas, **borrar** lo de pagos, reprogramar y ubicación compartida.
+3. **Documentación:** `README.md` (integrantes, problemática, cómo levantar con y sin Docker, usuarios de prueba, decisiones de diseño y **la aclaración de que el front parte del de Enfered (PP3)**) y `docs/DOCUMENTO.md` (problemática, solución y cómo están organizados los microservicios). Juntar lo que pasen los demás.
 
 ---
 
-## 4. Cronograma (actualizado el 29/10, entregamos el 03/11)
+## 4. Cronograma (actualizado el 30/10, entregamos el 03/11)
 
 | Fecha | Objetivo |
 |---|---|
-| **29/10** | Todos arrancan su parte y suben lo que tengan. Santiago: login y guards. Pablo: proyecto del front y componentes base. |
-| **30/10** | **Santiago sube login, roles y guards.** Germán: solicitudes y chat. Pablo: login y registro. Leo: pantallas con datos de prueba. |
-| **31/10** | **Integración**: el front consume el back real. Germán: reseñas. Santiago: docker-compose funcionando. |
-| **01/11** | Tests (back y front) + logging + arreglos. |
-| **02/11** | README, documento, prueba completa desde cero con `docker compose up --build` en la compu de alguien que no lo haya hecho. |
+| **30/10** | **Santiago sube login, roles y guards.** Pablo copia el front de PP3, borra lo que no va y adapta la capa de API. Germán: solicitudes y chat. Leo: adapta búsqueda, solicitudes y chat a la API nueva. |
+| **31/10** | **Integración**: el front consume el back real. Cada uno sube el Dockerfile de lo suyo y Santiago **prueba `docker compose up --build`**. Germán: reseñas. |
+| **01/11** | Tests (Pablo: todos los del front) + logging + `helmet` y límite de intentos + arreglos. |
+| **02/11** | Leo: README y documento. Prueba completa desde cero con `docker compose up --build` en la compu de alguien que no lo haya hecho. |
 | **03/11** | Entrega. |
