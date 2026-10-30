@@ -24,10 +24,11 @@ export class CreateServicioInput {
   @MaxLength(300)
   descripcion?: string;
 
-  @Field(() => Int)
+  @Field(() => Int, { nullable: true, description: 'Si no se indica, 60 minutos' })
+  @IsOptional()
   @IsInt()
   @Min(5)
-  duracionEstimadaMin: number;
+  duracionEstimadaMin?: number;
 
   @Field(() => Float)
   @IsNumber()

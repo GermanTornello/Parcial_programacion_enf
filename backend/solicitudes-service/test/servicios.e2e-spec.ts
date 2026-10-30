@@ -75,4 +75,10 @@ describe('Servicios GraphQL (e2e)', () => {
     expect(invalido.body.errors).toBeDefined();
     expect(JSON.stringify(invalido.body.errors)).toContain('duracionEstimadaMin');
   });
+
+  it('si no se indica la duración, usa 60 minutos', async () => {
+    const creado = await gql(CREAR, { input: { nombre: 'Higiene y confort', precioReferencia: 12000 } }).expect(200);
+    expect(creado.body.errors).toBeUndefined();
+    expect(creado.body.data.createServicio.duracionEstimadaMin).toBe(60);
+  });
 });

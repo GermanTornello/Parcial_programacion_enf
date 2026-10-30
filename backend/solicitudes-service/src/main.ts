@@ -21,7 +21,7 @@ async function bootstrap() {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('solicitudes-service')
     .setDescription(
-      'Enfe-Red: catálogo de servicios (GraphQL en /graphql), solicitudes de servicio y chat (REST)',
+      'Enfered: catálogo de servicios (GraphQL en /graphql), solicitudes de servicio y chat (REST)',
     )
     .setVersion('1.0')
     .addBearerAuth()

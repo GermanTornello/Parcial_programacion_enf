@@ -17,8 +17,8 @@ export class Servicio {
   @Prop({ trim: true })
   descripcion?: string;
 
-  @Field(() => Int, { description: 'Duración estimada en minutos' })
-  @Prop({ required: true, min: 5 })
+  @Field(() => Int, { description: 'Duración estimada en minutos (60 si no se indica)' })
+  @Prop({ required: true, min: 5, default: 60 })
   duracionEstimadaMin: number;
 
   @Field(() => Float, { description: 'Precio de referencia (solo informativo)' })
