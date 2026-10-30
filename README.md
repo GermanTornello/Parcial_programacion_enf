@@ -18,6 +18,7 @@ Marketplace de enfermería domiciliaria: conecta pacientes con enfermeros/as ind
 | `docker/mongo-init/` | Scripts de inicialización de la base de datos |
 | `docs/` | Documento de problemática, solución y arquitectura |
 
-La división de tareas y el contrato entre servicios están en [TAREAS_GRUPO.md](TAREAS_GRUPO.md).
+- **¿Qué es Enfe-Red y cómo funciona?** → [GUIA_ENFERED.md](GUIA_ENFERED.md) (explicación simple, empezar por acá)
+- **Contrato técnico y división de tareas** → [TAREAS_GRUPO.md](TAREAS_GRUPO.md)
 
 > README en construcción: las instrucciones para levantar el proyecto se completan antes de la entrega.

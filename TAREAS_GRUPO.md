@@ -5,6 +5,8 @@
 **Proyecto:** **Enfe-Red** – marketplace de enfermería domiciliaria
 **Repo:** https://github.com/GermanTornello/Parcial_programacion_enf
 
+> 📖 **¿Primera vez? Leé antes [GUIA_ENFERED.md](GUIA_ENFERED.md)**: explica qué es Enfe-Red y cómo funciona, con palabras simples.
+>
 > **Cómo usar este archivo con la IA:** copiá TODO este archivo y pegáselo a la IA, y agregá al final:
 > *"Soy [tu nombre]. Ayudame a hacer MI parte respetando exactamente el contrato compartido (puertos, endpoints, modelos, roles y nombres de variables)."*
 > El contrato (sección 2) es lo que permite que front y back trabajen en paralelo sin pisarse. **Si alguien necesita cambiarlo, lo avisa en el grupo antes.**
@@ -35,10 +37,10 @@
 /backend
    /usuarios-service     → NestJS, puerto 3001   (Santiago)
    /solicitudes-service  → NestJS, puerto 3002   (Germán)
-   /resenas-service      → NestJS, puerto 3003   (Santiago)
+   /resenas-service      → NestJS, puerto 3003   (Germán)
 /frontend                → React + Vite, puerto 5173  (Pablo y Leo)
-/docker/mongo-init       → scripts de inicialización de la base (Germán)
-docker-compose.yml       (Germán)
+/docker/mongo-init       → scripts de inicialización de la base (Santiago)
+docker-compose.yml       (Santiago)
 README.md
 docs/DOCUMENTO.md        → problemática + solución + arquitectura (Pablo)
 ```
@@ -230,7 +232,7 @@ mutation removeResena(id: ID!): Boolean!                              # el autor
 
 ### 2.8 Datos iniciales (los usan todos)
 
-**Catálogo de servicios** (lo carga Germán en `/docker/mongo-init`, **con estos `_id` fijos** para que los enfermeros de prueba puedan referenciarlos):
+**Catálogo de servicios** (lo carga Santiago en `/docker/mongo-init`, **con estos `_id` fijos** para que los enfermeros de prueba puedan referenciarlos):
 | _id | nombre | duración (min) | precio ref. |
 |---|---|---|---|
 | `650000000000000000000001` | Aplicación de inyectable | 15 | 5000 |
@@ -264,34 +266,34 @@ mutation removeResena(id: ID!): Boolean!                              # el autor
 
 ### 🔧 BACKEND
 
-#### Santiago – usuarios-service + resenas-service
-1. **usuarios-service**:
+#### Santiago – usuarios-service + Docker + base de datos (~25%)
+1. **usuarios-service** (lo primero, porque todos dependen de esto):
+   - `JwtStrategy`, `JwtAuthGuard`, `RolesGuard`, decorador `@Roles()` y decorador `@UsuarioActual()`. **Subirlos el jueves 30/10** y avisar en el grupo: Germán los usa en sus dos servicios.
    - Schema `Usuario` con discriminators `Paciente`, `Enfermero`, `Admin` (esto muestra la **herencia** del diagrama de clases).
    - Registro de paciente y de enfermero, login con bcrypt + JWT, `/auth/me`, `PATCH /perfil`.
-   - `JwtStrategy`, `JwtAuthGuard`, `RolesGuard`, decorador `@Roles()` y decorador `@UsuarioActual()`. **Pasárselos a Germán apenas estén** (los necesita para solicitudes-service).
    - Búsqueda geolocalizada con `$geoNear` + filtros, perfil público del enfermero.
    - Admin: validar/rechazar matrículas, listar y borrar usuarios.
    - Seed al arrancar: admin, paciente y enfermeros de prueba (sección 2.8).
-2. **resenas-service**: GraphQL CRUD de reseñas + `reputacion`/`reputaciones` (con `aggregate`), validando contra solicitudes-service que la solicitud esté REALIZADA.
-3. **Logging:** interceptor que loguee método, ruta, status y tiempo de cada request (con el `Logger` de Nest). Pasárselo a Germán.
-4. **Tests:**
+2. **Logging:** interceptor que loguee método, ruta, status y tiempo de cada request (con el `Logger` de Nest). Pasárselo a Germán.
+3. **Docker:** `Dockerfile` para cada servicio y el frontend + `docker-compose.yml` que levante `mongo`, los 3 servicios y el front con las variables de la sección 2.5. Un solo `docker compose up --build`.
+4. **Scripts de inicialización** en `/docker/mongo-init/`: catálogo de servicios con los `_id` fijos (sección 2.8).
+5. **Tests:**
    - Unit: registrar con email ya existente → `ConflictException` (mockeando el modelo).
    - Unit: al editar el perfil, `serviciosOfrecidos` no guarda ids repetidos (relación muchos-a-muchos).
-   - Unit (reseñas): `createResena` con solicitud no REALIZADA → `BadRequestException` (mockeando la llamada HTTP).
    - E2E: flujo **registro de enfermero → login → editar perfil**, y que un PACIENTE reciba 403 en `/admin/...`.
 
-#### Germán – solicitudes-service + Docker + base de datos
+#### Germán – solicitudes-service + resenas-service (~25%)
 1. **solicitudes-service**:
-   - GraphQL CRUD de **Servicios** (catálogo).
+   - GraphQL CRUD de **Servicios** (catálogo). ✅ **Hecho, con tests.**
    - REST de **Solicitudes**: crear (validando contra usuarios-service), listar según rol, detalle, y las transiciones de estado con sus reglas.
    - REST de **Mensajes** (chat de la solicitud).
-   - Usar los guards/roles/logging que pasa Santiago.
-2. **Docker:** `Dockerfile` para cada servicio y el frontend + `docker-compose.yml` que levante `mongo`, los 3 servicios y el front con las variables de la sección 2.5. Un solo `docker compose up --build`.
-3. **Scripts de inicialización** en `/docker/mongo-init/`: catálogo de servicios con los `_id` fijos (sección 2.8).
+2. **resenas-service**: GraphQL CRUD de reseñas + `reputacion`/`reputaciones` (con `aggregate`), validando contra solicitudes-service que la solicitud esté REALIZADA.
+3. Usar los guards/roles/logging que pasa Santiago. Si el jueves 30/10 no están, armarlos en sus servicios siguiendo el contrato (sección 2.3) para no frenarse.
 4. **Tests:**
-   - Unit: crear un servicio con nombre repetido → `ConflictException`.
+   - Unit: crear un servicio con nombre repetido → `ConflictException`. ✅
    - Unit: transición inválida (ej. `PENDIENTE → REALIZADA`) → `BadRequestException`.
-   - E2E: paciente crea solicitud → enfermero la acepta → envían mensajes (mockeando usuarios-service); y otro paciente recibe 403 al querer verla.
+   - Unit (reseñas): `createResena` con solicitud no REALIZADA → `BadRequestException` (mockeando la llamada HTTP).
+   - E2E: CRUD GraphQL de servicios ✅; paciente crea solicitud → enfermero la acepta → envían mensajes (mockeando usuarios-service); y otro paciente recibe 403 al querer verla.
 5. Revisar que los 3 servicios tengan Swagger en `/docs` bien documentado.
 
 ### 🎨 FRONTEND
@@ -319,13 +321,13 @@ mutation removeResena(id: ID!): Boolean!                              # el autor
 
 ---
 
-## 4. Cronograma (hoy es 27/10, entregamos 03/11)
+## 4. Cronograma (actualizado el 29/10, entregamos el 03/11)
 
 | Fecha | Objetivo |
 |---|---|
-| **27/10** | Contrato acordado. Esqueletos de los 3 servicios y del front. Santiago pasa guards/roles. Pablo sube los componentes base. |
-| **28–30/10** | Backend: endpoints funcionando y probados en Swagger / GraphQL. Frontend: auth + pantallas con mocks. |
-| **31/10** | **Integración**: el front consume el back real. docker-compose funcionando. |
+| **29/10** | Todos arrancan su parte y suben lo que tengan. Santiago: login y guards. Pablo: proyecto del front y componentes base. |
+| **30/10** | **Santiago sube login, roles y guards.** Germán: solicitudes y chat. Pablo: login y registro. Leo: pantallas con datos de prueba. |
+| **31/10** | **Integración**: el front consume el back real. Germán: reseñas. Santiago: docker-compose funcionando. |
 | **01/11** | Tests (back y front) + logging + arreglos. |
 | **02/11** | README, documento, prueba completa desde cero con `docker compose up --build` en la compu de alguien que no lo haya hecho. |
 | **03/11** | Entrega. |
