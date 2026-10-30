@@ -121,7 +121,7 @@ Para que el front y el back encajen, **todos respetamos lo mismo**: los nombres 
 
 ---
 
-## 6. Qué hace cada uno (~25% cada uno)
+## 6. Qué hace cada uno
 
 | Integrante | Parte | Lo primero que tiene que hacer |
 |---|---|---|
