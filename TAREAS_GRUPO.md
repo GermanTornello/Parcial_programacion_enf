@@ -2,10 +2,10 @@
 
 **Grupo:** Germán, Leo, Santiago, Pablo
 **Entrega:** 03/11/2026
-**Proyecto:** **Enfe-Red** – marketplace de enfermería domiciliaria
+**Proyecto:** **Enfered** – marketplace de enfermería domiciliaria
 **Repo:** https://github.com/GermanTornello/Parcial_programacion_enf
 
-> 📖 **¿Primera vez? Leé antes [GUIA_ENFERED.md](GUIA_ENFERED.md)**: explica qué es Enfe-Red y cómo funciona, con palabras simples.
+> 📖 **¿Primera vez? Leé antes [GUIA_ENFERED.md](GUIA_ENFERED.md)**: explica qué es Enfered y cómo funciona, con palabras simples.
 >
 > **Cómo usar este archivo con la IA:** copiá TODO este archivo y pegáselo a la IA, y agregá al final:
 > *"Soy [tu nombre]. Ayudame a hacer MI parte respetando exactamente el contrato compartido (puertos, endpoints, modelos, roles y nombres de variables)."*
@@ -17,7 +17,7 @@
 
 **Problema:** conseguir un enfermero/a a domicilio hoy es informal: "boca a boca", grupos de WhatsApp o agencias. Hay demoras, no hay garantía de que el profesional esté matriculado y es difícil resolver necesidades puntuales (una inyección, una curación, un control de signos vitales).
 
-**Solución – Enfe-Red:** una plataforma que conecta pacientes con enfermeros/as independientes **verificados**:
+**Solución – Enfered:** una plataforma que conecta pacientes con enfermeros/as independientes **verificados**:
 - **Pacientes** buscan enfermeros cerca de su domicilio (por distancia, especialidad y servicio), les **solicitan un servicio** con fecha, hora y dirección, **chatean** con el enfermero cuando acepta y al final **lo califican**.
 - **Enfermeros** se registran con su matrícula, cargan especialidades, servicios que ofrecen, zona y horarios, y gestionan las solicitudes que reciben (aceptar, rechazar, marcar realizada).
 - **Admin** valida las matrículas (nadie aparece en las búsquedas sin estar aprobado), gestiona usuarios y el catálogo de servicios.
@@ -29,7 +29,7 @@
 ### 2.1 Stack
 - **Backend:** **NestJS 12** (TypeScript) – crear cada servicio con `npx @nestjs/cli@12 new <nombre>`. Librerías: `@nestjs/mongoose`, `@nestjs/graphql` + `@nestjs/apollo` (code-first), `@nestjs/swagger`, `@nestjs/jwt` + `passport-jwt`, `@nestjs/config`, `class-validator`, `bcrypt`. Tests con **Vitest + Supertest** (vienen con Nest 12) y `mongodb-memory-server` para los e2e.
 - **Base de datos:** MongoDB (un solo contenedor, **una base por microservicio**: `usuarios_db`, `solicitudes_db`, `resenas_db`).
-- **Frontend:** React + Vite (JavaScript), React Router, Axios, **Leaflet + react-leaflet** (mapa con OpenStreetMap, gratis y sin API key). Tests con Vitest + React Testing Library.
+- **Frontend:** React + Vite (JavaScript), React Router, Axios, **Leaflet + react-leaflet** (mapa con OpenStreetMap, gratis y sin API key), centrado por defecto en **Mendoza capital** (`-32.8895, -68.8458`). Diseño y textos según la **sección 2.11**. Tests con Vitest + React Testing Library.
 - **Infra:** Docker + docker-compose.
 
 ### 2.2 Estructura del repo (monorepo)
@@ -114,6 +114,9 @@ Solo **Enfermero**:
 |---|---|---|
 | matricula | string | requerida, **única** |
 | especialidades | string[] | ej: `["Geriatría", "Pediatría", "Heridas"]` |
+| departamento | enum | requerido · departamento de **Mendoza**: `Capital`, `Godoy Cruz`, `Guaymallén`, `Las Heras`, `Luján de Cuyo`, `Maipú`, `Lavalle`, `San Martín`, `Rivadavia`, `Junín`, `Santa Rosa`, `La Paz`, `Tupungato`, `Tunuyán`, `San Carlos`, `San Rafael`, `General Alvear`, `Malargüe` |
+| aniosExperiencia | int | ≥ 0, default 0 |
+| tarifaHora | number | opcional, ≥ 0 · tarifa propia por hora (es distinta del precio de referencia de cada servicio) |
 | serviciosOfrecidos | string[] | ids de **Servicio** (sección 2.8) → **relación muchos-a-muchos** Enfermero ↔ Servicio |
 | ubicacion | GeoJSON Point | `{ type: 'Point', coordinates: [lng, lat] }` · **índice `2dsphere`** |
 | radioCoberturaKm | number | default 10 |
@@ -128,7 +131,7 @@ Solo **Enfermero**:
 |---|---|---|
 | nombre | string | requerido, **único** |
 | descripcion | string | opcional |
-| duracionEstimadaMin | number | ≥ 5 |
+| duracionEstimadaMin | number | ≥ 5 · **default 60** |
 | precioReferencia | number | ≥ 0 (solo informativo, no hay pagos) |
 | activo | boolean | default true |
 
@@ -145,9 +148,14 @@ Solo **Enfermero**:
 | notas | string | opcional |
 | estado | enum | `PENDIENTE` (default) · `ACEPTADA` · `RECHAZADA` · `CANCELADA` · `REALIZADA` |
 | motivoRechazo | string | opcional |
+| canceladaPor | enum | `PACIENTE` · `ENFERMERO` (si se canceló) |
+| motivoCancelacion | string | **obligatorio si cancela el enfermero**, opcional si cancela el paciente |
 
 Reglas:
 - Un enfermero no puede tener dos solicitudes `PENDIENTE`/`ACEPTADA` en la misma `fecha` + `hora` → **409**.
+- La `fecha` no puede ser pasada ni estar a **más de 6 meses** → **400**.
+- Un paciente puede tener como máximo **5 solicitudes `PENDIENTE`** a la vez → **409** ("Ya tenés 5 solicitudes pendientes").
+- Si cancela el **enfermero**, el `motivo` es obligatorio → **400** si falta.
 - Transiciones válidas (cualquier otra → **400**):
   - `PENDIENTE → ACEPTADA` o `RECHAZADA` (solo el enfermero de la solicitud)
   - `PENDIENTE` o `ACEPTADA → CANCELADA` (el paciente o el enfermero de la solicitud)
@@ -161,7 +169,7 @@ Reglas:
 | texto | string | 1 a 1000 caracteres |
 | createdAt | Date | automático (`timestamps: true`) |
 
-Regla: solo leen/escriben el paciente y el enfermero de la solicitud. Solo se puede **enviar** si la solicitud está `ACEPTADA` (si no → 400); leer, siempre.
+Regla: solo leen/escriben el paciente y el enfermero de la solicitud. Solo se puede **enviar** si la solicitud está `PENDIENTE` o `ACEPTADA` (si no → 400); leer, siempre.
 
 **Reseña** (resenas_db)
 | campo | tipo | reglas |
@@ -179,11 +187,11 @@ Regla: solo leen/escriben el paciente y el enfermero de la solicitud. Solo se pu
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
 | POST | `/auth/register/paciente` | público | Datos comunes + campos de Paciente. 409 si email o dni existen |
-| POST | `/auth/register/enfermero` | público | Datos comunes + matricula, especialidades, serviciosOfrecidos, ubicacion `{lat, lng}`. Queda `PENDIENTE`. 409 si email o matrícula existen |
+| POST | `/auth/register/enfermero` | público | Datos comunes + matricula, especialidades, departamento, aniosExperiencia, tarifaHora?, serviciosOfrecidos, ubicacion `{lat, lng}`. Queda `PENDIENTE`. 409 si email o matrícula existen |
 | POST | `/auth/login` | público | `{ email, password }` → `{ access_token, user: { id, nombre, apellido, email, rol } }` · 401 si falla |
 | GET | `/auth/me` | logueado | Usuario completo del token (sin password) |
 | PATCH | `/perfil` | logueado | Edita su perfil (campos según su rol; no puede cambiar rol, email ni estadoVerificacion). Enfermero manda ubicación como `{ lat, lng }` |
-| GET | `/enfermeros/buscar?lat=&lng=&radioKm=10&especialidad=&servicioId=&disponible=` | público | Solo `APROBADO`. Usa `$geoNear`, ordenado por distancia. Cada resultado trae `distanciaKm` (1 decimal) |
+| GET | `/enfermeros/buscar?lat=&lng=&radioKm=10&especialidad=&servicioId=&departamento=&disponible=` | público | Solo `APROBADO`. Usa `$geoNear`, ordenado por distancia. Cada resultado trae `distanciaKm` (1 decimal) |
 | GET | `/enfermeros/:id` | público | Perfil público del enfermero (sin password ni email). 404 si no existe |
 | GET | `/admin/enfermeros?estado=PENDIENTE` | ADMIN | Enfermeros por estado de verificación |
 | PATCH | `/admin/enfermeros/:id/verificacion` | ADMIN | `{ estado: 'APROBADO' \| 'RECHAZADO', motivo? }` |
@@ -209,10 +217,10 @@ mutation removeServicio(id: ID!): Boolean!                               # ADMIN
 | GET | `/solicitudes/:id` | participante o ADMIN | 403 si no participa · 404 si no existe |
 | PATCH | `/solicitudes/:id/aceptar` | ENFERMERO (el de la solicitud) | |
 | PATCH | `/solicitudes/:id/rechazar` | ENFERMERO (el de la solicitud) | `{ motivo? }` |
-| PATCH | `/solicitudes/:id/cancelar` | participante | |
+| PATCH | `/solicitudes/:id/cancelar` | participante | `{ motivo? }` · **obligatorio si cancela el enfermero** |
 | PATCH | `/solicitudes/:id/realizar` | ENFERMERO (el de la solicitud) | |
 | GET | `/solicitudes/:id/mensajes` | participante | Mensajes en orden cronológico |
-| POST | `/solicitudes/:id/mensajes` | participante | `{ texto }` · solo si está `ACEPTADA` |
+| POST | `/solicitudes/:id/mensajes` | participante | `{ texto }` · solo si está `PENDIENTE` o `ACEPTADA` |
 
 **resenas-service – GraphQL Reseñas (:3003/graphql)**
 ```graphql
@@ -235,12 +243,12 @@ mutation removeResena(id: ID!): Boolean!                              # el autor
 **Catálogo de servicios** (lo carga Santiago en `/docker/mongo-init`, **con estos `_id` fijos** para que los enfermeros de prueba puedan referenciarlos):
 | _id | nombre | duración (min) | precio ref. |
 |---|---|---|---|
-| `650000000000000000000001` | Aplicación de inyectable | 15 | 5000 |
-| `650000000000000000000002` | Curación de heridas | 30 | 9000 |
-| `650000000000000000000003` | Control de signos vitales | 20 | 6000 |
-| `650000000000000000000004` | Control de glucemia | 15 | 5000 |
-| `650000000000000000000005` | Cuidados post-operatorios | 60 | 15000 |
-| `650000000000000000000006` | Acompañamiento de adulto mayor | 120 | 20000 |
+| `650000000000000000000001` | Curaciones | 60 | 9000 |
+| `650000000000000000000002` | Inyecciones | 60 | 5000 |
+| `650000000000000000000003` | Control de signos vitales | 60 | 6000 |
+| `650000000000000000000004` | Higiene y confort | 60 | 12000 |
+| `650000000000000000000005` | Acompañamiento de adultos mayores | 120 | 20000 |
+| `650000000000000000000006` | Cuidados Intensivos | 120 | 30000 |
 
 **Usuarios de prueba** (los crea `usuarios-service` al arrancar si no existen – Santiago):
 | email | contraseña | rol |
@@ -248,7 +256,16 @@ mutation removeResena(id: ID!): Boolean!                              # el autor
 | admin@enfered.com | Admin123! | ADMIN |
 | paciente@enfered.com | Paciente123! | PACIENTE |
 | enfermera@enfered.com | Enfermera123! | ENFERMERO (APROBADO) |
-| + 3 o 4 enfermeros más APROBADOS, con ubicaciones distintas en nuestra ciudad y distintos servicios/especialidades, para que la búsqueda y el mapa muestren resultados | | |
+| enfermero1@enfered.com … enfermero4@enfered.com | Enfermero123! | ENFERMERO (APROBADO) |
+
+Ubicación de los enfermeros de prueba (todos **APROBADOS**, con distintos servicios y especialidades, para que la búsqueda y el mapa muestren resultados):
+| email | departamento | lat, lng (aprox.) |
+|---|---|---|
+| enfermera@enfered.com | Capital | -32.8895, -68.8458 |
+| enfermero1@enfered.com | Godoy Cruz | -32.9270, -68.8440 |
+| enfermero2@enfered.com | Guaymallén | -32.9050, -68.7880 |
+| enfermero3@enfered.com | Las Heras | -32.8500, -68.8280 |
+| enfermero4@enfered.com | Luján de Cuyo | -33.0360, -68.8790 |
 
 ### 2.9 Errores (formato estándar de Nest)
 `{ "statusCode": 409, "message": "El email ya está registrado", "error": "Conflict" }`
@@ -259,6 +276,29 @@ mutation removeResena(id: ID!): Boolean!                              # el autor
 - Para traer lo nuevo de `main` a tu rama: `git checkout <tu-rama>` → `git pull origin main`.
 - Commits chicos y descriptivos, en español. Cada uno toca **solo su carpeta** (salvo que se avise).
 - **No subir** `node_modules`, `dist` ni `.env` (sí `.env.example`).
+
+### 2.11 Identidad visual y textos (frontend)
+**Estilo:** cálido, claro, de "cuidado cercano". Fondos claros, tarjetas simples con bordes finos y sombras suaves.
+
+| Uso | Color |
+|---|---|
+| Texto | `#193b4d` |
+| Texto secundario | `#607583` |
+| Azul principal (botones y acciones) | `#167bb5` · oscuro `#11658f` · suave `#edf6fc` |
+| Verde de acompañamiento | `#137e75` · suave `#e9f6f1` |
+| Bordes | `#dfe8ec` |
+| Fondo | `#f7f9fb` |
+| Error | `#a52e3b` sobre `#fff2f3` |
+| Éxito | `#176a50` sobre `#eef9f3` |
+| Estrellas | dorado `#9a6800` |
+
+- **Tipografía:** Segoe UI o la del sistema. Títulos de ~34 px, texto de 14 px, etiquetas de sección chicas en mayúsculas y en verde.
+- **Marca:** "Enfered." con una cruz azul y el punto final verde.
+- **Componentes:** botón primario azul y secundario blanco con borde, **mínimo 44 px de alto**; campos siempre con su etiqueta visible; avisos de error, éxito e información; tarjetas con radio de 14 a 16 px.
+- **Colores por estado de la solicitud:** `PENDIENTE` amarillo suave, `ACEPTADA` azul, `REALIZADA` verde, `RECHAZADA`/`CANCELADA` tonos discretos. **Siempre con el texto del estado**, no solo el color.
+- **Responsive:** en escritorio, navegación arriba; en celular (menos de 800 px), barra fija abajo. Probar en 320–390 px, 540 px, 800 px y escritorio.
+- **Accesibilidad:** foco visible, todo operable con teclado, modales que se cierran con Escape, avisos con `aria-live` y cuatro estados en cada pantalla: **carga, vacío, error con "Reintentar" y éxito**.
+- **Textos en voseo**, cálidos y claros: "Buscá", "Iniciá sesión", "Tenés 3 solicitudes". También en los mensajes de error del backend.
 
 ---
 
@@ -302,21 +342,21 @@ mutation removeResena(id: ID!): Boolean!                              # el autor
 1. Proyecto `/frontend` con Vite + React, React Router, Axios.
 2. **Capa de API** (`src/api/`): una instancia de Axios por servicio (con las `VITE_*`), interceptor que agrega el token y que desloguea ante un 401. Helper `graphqlRequest(url, query, variables)`.
 3. **Autenticación:** `AuthContext` (token + usuario en `localStorage`), Login, Registro con **dos formularios** (paciente / enfermero; el de enfermero avisa que queda pendiente de validación), `ProtectedRoute` con roles opcionales.
-4. **Layout:** navbar con menú según rol, responsive (mobile first), página de inicio pública que explique Enfe-Red.
+4. **Layout:** navbar con menú según rol, responsive (mobile first), página de inicio pública que explique Enfered. **Seguir la identidad visual de la sección 2.11.**
 5. **Componentes reutilizables** (`src/components/`) para Leo: `DataTable`, `FormField`, `Modal`, `SearchBar`, `ConfirmDialog`, `Badge` (estados), `Spinner`, `Alert`, `StarRating` (mostrar y elegir 1-5). **Tenerlos listos lo antes posible.**
-6. **Mi perfil:** ver/editar. Para enfermero: especialidades, servicios ofrecidos (checkboxes del catálogo GraphQL), ubicación (botón "usar mi ubicación" con `navigator.geolocation`), radio, disponible, horarios, estado de verificación.
+6. **Mi perfil:** ver/editar. Para enfermero: especialidades, servicios ofrecidos (checkboxes del catálogo GraphQL), departamento, años de experiencia, tarifa por hora, ubicación (botón "usar mi ubicación" con `navigator.geolocation`), radio, disponible, horarios, estado de verificación.
 7. **Panel Admin:** validar/rechazar matrículas, usuarios (listar, buscar, borrar), ABM del catálogo de servicios (GraphQL).
 8. **Tests:** Login muestra error ante 401; `ProtectedRoute` redirige a /login sin token; `StarRating` permite elegir puntuación.
 9. **Documentación:** `README.md` (integrantes, problemática, cómo levantar con y sin Docker, usuarios de prueba, decisiones de diseño) y `docs/DOCUMENTO.md` (problemática, solución, diagrama de microservicios). Juntar lo que pasen los demás.
 
 #### Leo – búsqueda, solicitudes, chat y reseñas
-1. **Buscar enfermeros:** filtros (servicio, especialidad, radio, solo disponibles), ubicación del paciente (geolocalización del navegador o la dirección), **lista de tarjetas + mapa (react-leaflet)** sincronizados, con distancia y estrellas (`reputaciones`).
+1. **Buscar enfermeros:** filtros (servicio, especialidad, departamento, radio, solo disponibles), mapa centrado en Mendoza, ubicación del paciente (geolocalización del navegador o la dirección), **lista de tarjetas + mapa (react-leaflet)** sincronizados, con distancia y estrellas (`reputaciones`).
 2. **Perfil público del enfermero:** datos, servicios, horarios, reputación y reseñas, botón "Solicitar servicio".
 3. **Solicitar servicio:** formulario (servicio de los que ofrece, fecha, hora, dirección, notas) y comprobante.
 4. **Mis solicitudes (paciente):** lista con filtros por estado/fecha, cancelar, abrir chat, **calificar** si está REALIZADA y no tiene reseña.
 5. **Bandeja del enfermero:** solicitudes recibidas con aceptar / rechazar (con motivo) / marcar realizada / cancelar.
 6. **Chat** de la solicitud: polling cada 3 s, mensajes propios a la derecha, solo lectura si no está ACEPTADA.
-7. Usar **siempre** los componentes de Pablo (si falta uno, pedirlo o agregarlo en `src/components/` avisando). Mientras el back no esté, usar datos mock con la forma exacta de la sección 2.6.
+7. Seguir la **identidad visual de la sección 2.11** y usar **siempre** los componentes de Pablo (si falta uno, pedirlo o agregarlo en `src/components/` avisando). Mientras el back no esté, usar datos mock con la forma exacta de la sección 2.6.
 8. **Tests:** el formulario de solicitud valida campos obligatorios; la lista de búsqueda renderiza tarjetas con distancia a partir de datos mock; el chat deshabilita el envío si la solicitud no está ACEPTADA.
 
 ---

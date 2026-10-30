@@ -1,4 +1,4 @@
-# Enfe-Red – TP Final Programación III
+# Enfered – TP Final Programación III
 
 Marketplace de enfermería domiciliaria: conecta pacientes con enfermeros/as independientes verificados, con búsqueda por cercanía, solicitudes de servicio, chat y reseñas (NestJS + React + MongoDB + Docker).
 
@@ -18,7 +18,7 @@ Marketplace de enfermería domiciliaria: conecta pacientes con enfermeros/as ind
 | `docker/mongo-init/` | Scripts de inicialización de la base de datos |
 | `docs/` | Documento de problemática, solución y arquitectura |
 
-- **¿Qué es Enfe-Red y cómo funciona?** → [GUIA_ENFERED.md](GUIA_ENFERED.md) (explicación simple, empezar por acá)
+- **¿Qué es Enfered y cómo funciona?** → [GUIA_ENFERED.md](GUIA_ENFERED.md) (explicación simple, empezar por acá)
 - **Contrato técnico y división de tareas** → [TAREAS_GRUPO.md](TAREAS_GRUPO.md)
 
 > README en construcción: las instrucciones para levantar el proyecto se completan antes de la entrega.
