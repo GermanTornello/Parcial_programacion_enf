@@ -131,6 +131,8 @@
 .solicitud-aviso { margin: 16px 0 0; }
 .solicitud-aviso:focus { outline: 2px solid #1b84ba; outline-offset: 2px; }
 .solicitud-calificacion { margin: 16px 0 0; }
+.solicitud-reprogramar { margin: 12px 0 0; }
+.solicitud-reprogramar > .solicitud-aviso { margin-bottom: 12px; }
 .solicitud-dialogo {
   width: min(480px, calc(100% - 32px));
   max-height: calc(100svh - 32px);
@@ -172,11 +174,26 @@
 .solicitud-horario:has(input:focus-visible) { outline: 2px solid #1b84ba; outline-offset: 2px; }
 .solicitud-horarios:disabled .solicitud-horario { opacity: 0.6; cursor: not-allowed; }
 
-/* Dirección de atención que el paciente proporciona al pedir el turno. */
+/* Lugar de atención: el paciente lo marca al pedir el turno y el enfermero lo ve para llegar. */
 .solicitud-ubicacion { border: 0; padding: 0; margin: 0; min-width: 0; }
 .solicitud-ubicacion legend { padding: 0; margin-bottom: 6px; font-weight: 600; }
+.ubicacion-atencion { display: grid; gap: 12px; margin-top: 14px; }
+.ubicacion-atencion-direccion { margin: 0; }
+.ubicacion-atencion-mapa { height: 280px; border-radius: 12px; border: 1px solid var(--border); }
 /* WhatsApp como alternativa dentro del chat. */
 .chat-whatsapp { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 14px 0 0; }
 /* Acciones del encabezado de una página (por ejemplo, la bandeja del enfermero). */
 .page-heading-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
 @media (max-width: 540px) { .page-heading-actions { justify-content: flex-start; } }
+/* El paciente marca o corrige el lugar de atención desde la tarjeta o el comprobante. */
+.lugar-atencion-paciente, .lugar-atencion-editor { display: grid; gap: 12px; margin-top: 14px; }
+/* Pedir turno: dónde se atiende (dirección del perfil, ubicación actual u otra). */
+.solicitud-lugar-opciones { display: grid; gap: 10px; margin-bottom: 14px; }
+.solicitud-lugar-opcion { display: flex; align-items: flex-start; gap: 12px; min-height: 44px; padding: 12px 14px;
+  border: 1px solid var(--border); border-radius: 10px; font-weight: 600; cursor: pointer; }
+.solicitud-lugar-opcion input { flex-shrink: 0; width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--blue); }
+.solicitud-lugar-opcion small { display: block; margin-top: 2px; color: var(--muted); font-size: 14px; font-weight: 400; }
+.solicitud-lugar-opcion:has(input:checked) { border-color: var(--blue); background: var(--blue-soft); }
+.solicitud-ubicacion > .field { margin-bottom: 14px; }
+/* Pago: el paciente avisa "Ya pagué" y el profesional confirma "Me llegó el pago". */
+.solicitud-pago { margin: 12px 0 4px; }

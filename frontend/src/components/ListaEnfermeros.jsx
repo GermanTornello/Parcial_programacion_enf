@@ -21,6 +21,7 @@ const FILTERS = [
 ];
 // HU3 "enfermeros cercanos": la ubicación del paciente ordena los resultados por distancia.
 const UBICACION = ['lat', 'lng', 'radio_km'];
+// horario=parcial: el horario vino de la búsqueda asistida ("a la tarde") y alcanza con atender en parte de él.
 const HORARIO_PARCIAL = 'horario';
 const HORAS = ['hora_desde', 'hora_hasta'];
 const RADIOS_KM = ['5', '10', '25', '50'];

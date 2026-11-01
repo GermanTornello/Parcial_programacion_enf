@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { enlaceWhatsapp } from '../api';
-import { profileApi } from '../api/profile.js';
+import { requestApi as api, enlaceWhatsapp } from '../api';
 import { DIAS_SEMANA, diaDeLaSemana, fechaLegible, fechaMaximaISO, hoyISO } from '../fechas';
 import { crearSolicitud, obtenerProfesional, obtenerServicios, errorSolicitud } from '../services/solicitudes';
 import './Solicitudes.css';
@@ -87,7 +86,7 @@ export default function SolicitarServicio() {
       obtenerProfesional(id, controller.signal),
       obtenerServicios(controller.signal),
       // Si el perfil propio no carga igual se puede pedir el turno: solo no se precarga nada.
-      profileApi.getCurrent(controller.signal).catch(() => null),
+      api('/perfil/paciente', { signal: controller.signal }).catch(() => null),
     ]).then(([profesional, catalogo, propio]) => {
       if (!Array.isArray(catalogo)) throw new Error('Catálogo inválido');
       if (controller.signal.aborted) return;
@@ -112,7 +111,7 @@ export default function SolicitarServicio() {
   const habilitado = profesionalHabilitado && catalogoDisponible && !!idEnfermero;
   const bloqueado = !catalogoDisponible || enviando || creada;
   const servicio = servicios.find(s => String(s.idServicio) === String(datos.idServicio));
-  const duracion = Number(servicio?.duracionMinutos ?? servicio?.duracionEstimadaMin) || DURACION_POR_DEFECTO;
+  const duracion = Number(servicio?.duracionMinutos) || DURACION_POR_DEFECTO;
   // Con horarios cargados el backend exige que el turno entre en ellos; sin horarios, cualquier hora.
   const franjas = (Array.isArray(perfil?.horarios) ? perfil.horarios : [])
     .filter(h => (h.estado || 'Disponible') === 'Disponible' && h.hora_inicio && h.hora_fin)
@@ -129,7 +128,7 @@ export default function SolicitarServicio() {
   const cambiar = event => {
     const { name, value } = event.target;
     // Al cambiar el día o el servicio cambian los horarios posibles: la hora elegida se vuelve a pedir.
-    setDatos(actual => ({ ...actual, [name]: value, ...(conAgenda && name !== 'hora' && name !== 'direccionAtencion' ? { hora: '' } : {}) }));
+    setDatos(actual => ({ ...actual, [name]: value, ...(conAgenda && name !== 'hora' ? { hora: '' } : {}) }));
   };
   async function enviar(event) {
     event.preventDefault();
@@ -149,14 +148,14 @@ export default function SolicitarServicio() {
       if (pideTelefono) {
         // Se guarda en el perfil antes del pedido: el profesional lo necesita para avisar.
         try {
-          const actualizado = await profileApi.update({ telefono: telefono.trim() });
+          const actualizado = await api('/perfil/paciente', { method: 'PUT', body: { telefono: telefono.trim() } });
           setPaciente(actual => ({ ...actual, ...actualizado, telefono: actualizado?.telefono || telefono.trim() }));
-        } catch (err) { setError(errorSolicitud(err)); return; }
+        } catch (err) { setError(err.message); return; }
       }
       const respuesta = await crearSolicitud({
         ...datos,
-        idServicio: datos.idServicio,
-        idEnfermero,
+        idServicio: Number(datos.idServicio),
+        idEnfermero: Number(idEnfermero),
         direccionAtencion: datos.direccionAtencion.trim(),
       });
       setCreada(true);
@@ -220,11 +219,7 @@ export default function SolicitarServicio() {
         </fieldset> : <label className="field">Hora<input type="time" name="hora" required value={datos.hora} onChange={cambiar} disabled={bloqueado} />
           <span className="field-hint">{nombre} no cargó días y horarios: elegí la hora que te quede mejor.</span>
         </label>}
-        <fieldset className="field solicitud-ubicacion" disabled={bloqueado}>
-          <legend>¿Dónde te atienden?</legend>
-          <label className="field">Dirección de atención<input name="direccionAtencion" autoComplete="street-address" maxLength={200} required value={datos.direccionAtencion} onChange={cambiar} /></label>
-          <p className="field-hint">Compartimos esta dirección con el profesional para coordinar la atención.</p>
-        </fieldset>
+        <label className="field">Dirección de atención<input name="direccionAtencion" autoComplete="street-address" maxLength={200} required value={datos.direccionAtencion} onChange={cambiar} disabled={bloqueado} /></label>
         {pideTelefono && <label className="field">Tu teléfono celular<input type="tel" name="telefono" autoComplete="tel" inputMode="tel" maxLength={40} required value={telefono} onChange={event => setTelefono(event.target.value)} disabled={bloqueado} />
           <span className="field-hint">Lo guardamos en tu perfil para que el profesional pueda avisarte. Por ejemplo: 261 555 1234.</span>
         </label>}

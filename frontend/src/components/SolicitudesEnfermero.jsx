@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { requestApi as api, enlaceWhatsapp } from '../api';
-import { fechaLegible } from '../fechas';
+import { fechaLegible, turnoFuturo } from '../fechas';
 import {
   aceptarSolicitud,
   cancelarTurnoEnfermero,
@@ -18,8 +18,7 @@ import './Solicitudes.css';
 const ACCIONES = {
   aceptar: { enviar: aceptarSolicitud, exito: 'Solicitud aceptada.' },
   rechazar: { enviar: rechazarSolicitud, exito: 'Solicitud rechazada.' },
-  // SCRUM-59.3: marcar como realizada habilita la reseña del paciente (HU11).
-  finalizar: { enviar: finalizarSolicitud, exito: 'Servicio marcado como realizado.' },
+  finalizar: { enviar: finalizarSolicitud, exito: 'Atención marcada como realizada.' },
   cancelar: {
     enviar: (id, motivo) => cancelarTurnoEnfermero(id, motivo),
     exito: 'Turno cancelado. Le avisamos al paciente con el motivo que escribiste.',
@@ -146,7 +145,12 @@ export default function SolicitudesEnfermero() {
       dialog.current?.close();
       dialogCancelar.current?.close();
     } catch (err) {
-
+      // El paciente cambió el horario: se muestra el nuevo en la tarjeta para que lo revise antes de aceptar.
+      const actual = err.response?.data?.solicitud;
+      if (actual?.idSolicitud === solicitud.idSolicitud) {
+        version.current += 1;
+        setSolicitudes((items) => items.map((item) => (item.idSolicitud === actual.idSolicitud ? actual : item)));
+      }
       if (enDialogo) setErrorDialogo(mensajeError(err));
       else setAviso({ idSolicitud: solicitud.idSolicitud, exito: false, texto: mensajeError(err) });
     } finally {
@@ -210,12 +214,26 @@ export default function SolicitudesEnfermero() {
       </dl>
       {solicitud.estado === 'Aceptada' && (
         <div className="solicitud-card-actions">
-          <button className="button button-primary" type="button" disabled={guardando} onClick={() => cambiarEstado(solicitud, 'finalizar')}>
-            {guardando ? 'Actualizando...' : 'Marcar como realizado'}
-          </button>
-          <button className="button button-secondary" type="button" disabled={guardando} onClick={() => abrirCancelar(solicitud)}>
-            Cancelar turno
-          </button>
+          {!turnoFuturo(solicitud) && (
+            <button
+              className="button button-primary"
+              type="button"
+              disabled={guardando}
+              onClick={() => cambiarEstado(solicitud, 'finalizar')}
+            >
+              {guardando ? 'Actualizando…' : 'Marcar como realizada'}
+            </button>
+          )}
+          {turnoFuturo(solicitud) && (
+            <button
+              className="button button-secondary"
+              type="button"
+              disabled={guardando}
+              onClick={() => abrirCancelar(solicitud)}
+            >
+              Cancelar turno
+            </button>
+          )}
         </div>
       )}
       {CHAT_VISIBLE.includes(solicitud.estado) && (
@@ -236,7 +254,6 @@ export default function SolicitudesEnfermero() {
               ? (chatAbierto === solicitud.idSolicitud ? 'Ocultar chat' : 'Escribirle al paciente')
               : (chatAbierto === solicitud.idSolicitud ? 'Ocultar mensajes' : 'Ver mensajes')}
           </button>
-
         </div>
       )}
       {chatAbierto === solicitud.idSolicitud && CHAT_VISIBLE.includes(solicitud.estado) && (
@@ -260,7 +277,7 @@ export default function SolicitudesEnfermero() {
             className="button button-primary"
             type="button"
             disabled={guardando}
-            onClick={() => cambiarEstado(solicitud, 'aceptar')}
+            onClick={() => cambiarEstado(solicitud, 'aceptar', { fecha: solicitud.fecha, hora: solicitud.hora })}
           >
             {guardando ? 'Actualizando…' : 'Aceptar solicitud'}
           </button>

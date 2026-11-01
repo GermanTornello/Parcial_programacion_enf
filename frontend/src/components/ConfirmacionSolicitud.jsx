@@ -12,7 +12,6 @@ import ChatServicio, { CHAT_ABIERTO, CHAT_VISIBLE } from './ChatServicio';
 import useActualizacionPeriodica from './useActualizacionPeriodica';
 import './Solicitudes.css';
 
-
 export default function ConfirmacionSolicitud() {
   const { idSolicitud } = useParams();
   // Al llegar recién enviada desde el formulario se confirma arriba de todo que el pedido salió. Se guarda en el
@@ -96,6 +95,7 @@ export default function ConfirmacionSolicitud() {
         comprobante
         solicitud={solicitud}
         calificacion={calificaciones[solicitud.idSolicitud]}
+        onActualizada={setSolicitud}
         onCalificada={(calificacion) => setCalificaciones(actuales => ({ ...actuales, [calificacion.idSolicitud]: calificacion }))}
       />}
       <CancelarSolicitud key={solicitud.idSolicitud} solicitud={solicitud} onCancelada={(id, actualizada) => setSolicitud(actual => actualizada || { ...actual, estado: 'Cancelada', canceladaPor: 'paciente' })} />

@@ -17,18 +17,15 @@ los errores GraphQL se extraen de `errors[].message` y los errores REST de `mess
 Los IDs son strings y los estados del backend están en mayúsculas; los adaptadores de
 `src/services/solicitudes.js` los presentan con el formato usado por la interfaz.
 
-## Integración en curso
+## Estado de integración
 
-La solicitud de turnos usa el contrato NestJS, conserva los IDs Mongo como texto y
-envía `enfermeroId`, `servicioId`, `fecha`, `hora`, `direccionAtencion` y `notas`.
-El formulario toma la duración y disponibilidad del servicio/perfil.
+Autenticación, perfil, administración y los clientes compartidos están adaptados al
+contrato NestJS. `Home` carga el perfil con `GET /auth/me` y deriva los horarios del
+perfil del enfermero.
 
-El chat usa `GET` y `POST /solicitudes/:id/mensajes` y los campos `id`, `autorId`,
-`autorNombre`, `texto` y `createdAt`. **El backend todavía debe implementar esas rutas**
-para que la conversación funcione de extremo a extremo.
-
-`Home` carga el perfil con `GET /auth/me` y deriva los horarios del perfil del enfermero.
-La migración del resto de las pantallas PP3 no está completa: `ListaEnfermeros`,
-`SolicitudesEnfermero`, `EstadoSolicitudes`, `VerPerfiles`, `HistorialServicios` y
-`useUbicacion` todavía usan `requestApi` y/o rutas antiguas. La geocodificación,
-además, no forma parte del contrato actual.
+La adaptación de las pantallas de búsqueda, solicitudes, chat y reseñas queda pendiente
+para Leo. Esas pantallas todavía conservan el flujo PP3/`requestApi` y no se deben
+considerar integradas por el hecho de que existan clientes para la API nueva.
+El chat tampoco está completo de extremo a extremo: el backend aún debe implementar
+`GET/POST /solicitudes/:id/mensajes`. El contrato actual no incluye geocodificación
+ni coordenadas del paciente.

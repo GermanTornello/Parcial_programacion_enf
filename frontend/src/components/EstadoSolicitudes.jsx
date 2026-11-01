@@ -44,6 +44,7 @@ function TarjetaSolicitud({ solicitud, calificacion, onActualizada, onCalificada
       <AccionesPaciente
         solicitud={solicitud}
         calificacion={calificacion}
+        onActualizada={onActualizada}
         onCalificada={onCalificada}
         chatAbierto={chatAbierto}
         onAlternarChat={() => setChatAbierto((abierto) => !abierto)}

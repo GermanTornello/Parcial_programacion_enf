@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { resenasApi } from '../api/contract.js';
+import { requestApi as api } from '../api';
 import { fechaLegible } from '../fechas';
 import ModalCalificacion from './ModalCalificacion';
 
@@ -16,19 +16,19 @@ export default function CalificarSolicitud({ solicitud, onCalificada }) {
     setGuardando(true);
     setError('');
     try {
-      const resultado = await resenasApi.create({
-        solicitudId: String(solicitud.idSolicitud),
-        puntuacion: estrellas,
-        comentario,
-      });      setAbierto(false);
+      const resultado = await api('/resenas', {
+        method: 'POST',
+        body: { idSolicitud: solicitud.idSolicitud, puntuacion: estrellas, comentario },
+      });
+      setAbierto(false);
       onCalificada?.({
-        idCalificacion: resultado?.id,
+        idCalificacion: resultado.resena?.idResena,
         idSolicitud: solicitud.idSolicitud,
-        estrellas: resultado?.puntuacion ?? estrellas,
-        comentario: resultado?.comentario ?? comentario,
+        estrellas: resultado.resena?.puntuacion ?? estrellas,
+        comentario: resultado.resena?.comentario ?? comentario,
       });
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      setError(err.message);
     } finally {
       setGuardando(false);
     }

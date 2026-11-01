@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { sesionActual } from '../api';
-import { requestsApi } from '../api/contract.js';
+import { requestApi as api, sesionActual } from '../api';
 
 // SCRUM-63 (Santiago): chat asociado a una solicitud. Contrato en backend/SPRINT5-INTEGRACION.md.
 export const INTERVALO_CHAT_MS = 3000;
-const MAX_CONTENIDO = 1000;
+const MAX_CONTENIDO = 2000;
 // Se puede escribir desde que el paciente pide el turno hasta que el servicio se cierra.
 export const CHAT_ABIERTO = ['Pendiente', 'Aceptada'];
 // Cerrada la conversación, queda como registro de lectura.
@@ -25,12 +24,9 @@ function horaLocal(fechaHora) {
 
 // Une los mensajes nuevos sin duplicar los que ya estaban (polling y envío propio).
 function unirMensajes(actuales, nuevos) {
-  const porId = new Map(actuales.map((mensaje) => [mensaje.id, mensaje]));
-  nuevos.forEach((mensaje) => porId.set(mensaje.id, mensaje));
-  return [...porId.values()].sort((a, b) => {
-    const diferencia = Date.parse(a.createdAt) - Date.parse(b.createdAt);
-    return Number.isNaN(diferencia) ? String(a.id).localeCompare(String(b.id)) : diferencia;
-  });
+  const porId = new Map(actuales.map((mensaje) => [mensaje.idMensaje, mensaje]));
+  nuevos.forEach((mensaje) => porId.set(mensaje.idMensaje, mensaje));
+  return [...porId.values()].sort((a, b) => a.idMensaje - b.idMensaje);
 }
 
 // En pantallas táctiles Enter agrega una línea; se envía con el botón.
@@ -45,7 +41,7 @@ export default function ChatServicio({
   const { idSolicitud } = solicitud;
   const [estado, setEstado] = useState(solicitud.estado);
   const habilitado = CHAT_ABIERTO.includes(estado);
-  const userId = String(sesionActual()?.sub ?? '');
+  const userId = Number(sesionActual()?.sub);
   const [mensajes, setMensajes] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState('');
@@ -76,16 +72,15 @@ export default function ChatServicio({
       consultando = true;
       controller = new AbortController();
       try {
-        const items = await requestsApi.messages(idSolicitud, controller.signal);
+        const items = await api(`/solicitudes/${idSolicitud}/mensajes`, { signal: controller.signal });
         if (!Array.isArray(items)) throw new Error('La respuesta de mensajes no es válida.');
         if (!activo) return;
         setMensajes((actuales) => unirMensajes(actuales, items));
         setErrorCarga('');
       } catch (err) {
         if (!activo || err.name === 'AbortError') return;
-        const status = err.response?.status ?? err.status;
-        setErrorCarga(err.response?.data?.message || err.message);
-        if (ERRORES_PERMANENTES.includes(status)) {
+        setErrorCarga(err.message);
+        if (ERRORES_PERMANENTES.includes(err.status)) {
           window.clearInterval(timer);
           setBloqueado(true);
         }
@@ -112,7 +107,7 @@ export default function ChatServicio({
     if (!habilitado && errorEnvio) avisoCierre.current?.focus();
   }, [habilitado, errorEnvio]);
 
-  const ultimoId = mensajes.at(-1)?.id;
+  const ultimoId = mensajes.at(-1)?.idMensaje;
   useEffect(() => {
     // Desplaza solo el contenedor del chat, sin mover la página.
     if (lista.current) lista.current.scrollTop = lista.current.scrollHeight;
@@ -121,7 +116,7 @@ export default function ChatServicio({
   // Si el envío choca con un cambio de estado (409), se consulta el estado real y se cierra el chat.
   async function revisarEstado() {
     try {
-      const actual = await requestsApi.get(idSolicitud);
+      const actual = await api(`/solicitudes/${idSolicitud}`);
       if (actual?.estado && !CHAT_ABIERTO.includes(actual.estado)) {
         setEstado(actual.estado);
         onEstadoCambiado?.(actual);
@@ -141,16 +136,18 @@ export default function ChatServicio({
     setEnviando(true);
     setErrorEnvio('');
     try {
-      const mensaje = await requestsApi.sendMessage(idSolicitud, contenido);
-      if (!mensaje?.id) throw new Error('El servidor no devolvió el mensaje enviado.');
+      const mensaje = await api(`/solicitudes/${idSolicitud}/mensajes`, {
+        method: 'POST',
+        body: { contenido },
+      });
+      if (!mensaje?.idMensaje) throw new Error('El servidor no devolvió el mensaje enviado.');
       setMensajes((actuales) => unirMensajes(actuales, [mensaje]));
       setTexto('');
     } catch (err) {
-      const status = err.response?.status ?? err.status;
-      const nuevoEstado = status === 409 ? await revisarEstado() : null;
+      const nuevoEstado = err.status === 409 ? await revisarEstado() : null;
       setErrorEnvio(nuevoEstado
         ? `La solicitud pasó a ${nuevoEstado}: la conversación se cerró y tu mensaje no se envió.`
-        : err.response?.data?.message || err.message);
+        : err.message);
     } finally {
       ocupado.current = false;
       setEnviando(false);
@@ -195,15 +192,15 @@ export default function ChatServicio({
           <p className="chat-vacio">Cargando mensajes…</p>
         ) : mensajes.length ? (
           mensajes.map((mensaje) => {
-            const propio = String(mensaje.autorId) === userId;
+            const propio = mensaje.idEmisor === userId;
             return (
               <article
-                key={mensaje.id}
+                key={mensaje.idMensaje}
                 className={`chat-mensaje ${propio ? 'propio' : 'recibido'}`}
               >
-                <span className="sr-only">{propio ? 'Vos' : mensaje.autorNombre || contraparte || 'La otra persona'}: </span>
-                <p>{mensaje.texto}</p>
-                <time dateTime={mensaje.createdAt}>{horaLocal(mensaje.createdAt)}</time>
+                <span className="sr-only">{propio ? 'Vos' : contraparte || 'La otra persona'}: </span>
+                <p>{mensaje.contenido}</p>
+                <time dateTime={mensaje.fechaHora}>{horaLocal(mensaje.fechaHora)}</time>
               </article>
             );
           })

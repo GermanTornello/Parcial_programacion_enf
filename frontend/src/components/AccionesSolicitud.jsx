@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { enlaceWhatsapp } from '../api';
-import { resenasApi } from '../api/contract.js';
+import { requestApi as api, enlaceWhatsapp, sesionActual } from '../api';
 import { fechaLegible } from '../fechas';
 import CalificarSolicitud from './CalificarSolicitud';
 import { EstrellasLectura } from './SelectorEstrellas';
-import { CHAT_VISIBLE } from './ChatServicio';
+import { CHAT_ABIERTO, CHAT_VISIBLE } from './ChatServicio';
 import { ESTADOS_SIN_TURNO, textoEstado } from './estadoSolicitud';
 
 // Partes de la solicitud que comparten la tarjeta de Mis solicitudes y el comprobante.
@@ -26,21 +25,17 @@ export const NOTA_WHATSAPP_PACIENTE = 'Cuando el profesional acepte el turno, ta
 
 // El historial es lo único que dice si una atención Realizada ya tiene reseña.
 export async function calificacionesDelHistorial(signal) {
-  const resenas = await resenasApi.mine();
-  if (signal?.aborted || !Array.isArray(resenas)) return {};
-  return Object.fromEntries(resenas.map((resena) => [String(resena.solicitudId), {
-    idCalificacion: resena.id,
-    idSolicitud: resena.solicitudId,
-    estrellas: resena.puntuacion,
-    comentario: resena.comentario,
-  }]));
+  const historial = await api(`/usuarios/${sesionActual()?.sub}/historial`, { signal });
+  if (!Array.isArray(historial)) return {};
+  return Object.fromEntries(historial.map((item) => [item.idSolicitud, (item.calificaciones || [])[0] || null]));
 }
+
 // onAlternarChat: en Mis solicitudes el chat se abre dentro de la tarjeta (en el comprobante ya está abierto).
 export function AccionesPaciente({
   solicitud, calificacion, onCalificada, comprobante = false, chatAbierto = false, onAlternarChat,
 }) {
   const [gracias, setGracias] = useState(false);
-  const chatActivo = CHAT_VISIBLE.includes(solicitud.estado);
+  const chatActivo = CHAT_ABIERTO.includes(solicitud.estado);
   return (
     <>
       {solicitud.estado === 'Realizada' && calificacion && (
