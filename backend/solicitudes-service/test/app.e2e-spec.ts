@@ -4,6 +4,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
+import { configurarApp } from './../src/configurar-app.js';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -19,6 +20,7 @@ describe('AppController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    configurarApp(app);
     await app.init();
   });
 
@@ -27,6 +29,13 @@ describe('AppController (e2e)', () => {
       .get('/')
       .expect(200)
       .expect({ servicio: 'solicitudes-service', estado: 'ok' });
+  });
+
+  it('responde con las cabeceras de seguridad de helmet', async () => {
+    const respuesta = await request(app.getHttpServer()).get('/').expect(200);
+    expect(respuesta.headers['x-content-type-options']).toBe('nosniff');
+    expect(respuesta.headers['x-frame-options']).toBe('SAMEORIGIN');
+    expect(respuesta.headers['x-powered-by']).toBeUndefined();
   });
 
   afterAll(async () => {

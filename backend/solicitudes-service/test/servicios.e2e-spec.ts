@@ -1,9 +1,10 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
+import { configurarApp } from './../src/configurar-app.js';
 import { ADMIN, JWT_SECRET_TEST, PACIENTE } from './tokens.js';
 
 describe('Servicios GraphQL (e2e)', () => {
@@ -29,7 +30,7 @@ describe('Servicios GraphQL (e2e)', () => {
       imports: [AppModule],
     }).compile();
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    configurarApp(app);
     await app.init();
   });
 

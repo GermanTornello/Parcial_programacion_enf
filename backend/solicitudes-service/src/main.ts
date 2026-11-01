@@ -1,22 +1,14 @@
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
+import { configurarApp } from './configurar-app.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Permite que el frontend (otro puerto) consuma la API
-  app.enableCors();
-
-  // Valida los DTOs: descarta campos que no estén declarados y convierte tipos
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
+  // Logging, helmet, CORS y validación (lo mismo que usan los tests e2e)
+  configurarApp(app);
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('solicitudes-service')
