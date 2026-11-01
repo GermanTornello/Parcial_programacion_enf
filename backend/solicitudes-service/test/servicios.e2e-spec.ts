@@ -4,13 +4,18 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
+import { ADMIN, JWT_SECRET_TEST, PACIENTE } from './tokens.js';
 
 describe('Servicios GraphQL (e2e)', () => {
   let app: INestApplication<App>;
   let mongo: MongoMemoryServer;
 
-  const gql = (query: string, variables?: Record<string, unknown>) =>
-    request(app.getHttpServer()).post('/graphql').send({ query, variables });
+  // Por defecto las operaciones van con token de ADMIN; null = sin token
+  const gql = (query: string, variables?: Record<string, unknown>, tokenUsado: string | null = ADMIN) => {
+    const pedido = request(app.getHttpServer()).post('/graphql');
+    if (tokenUsado) pedido.set('Authorization', `Bearer ${tokenUsado}`);
+    return pedido.send({ query, variables });
+  };
 
   const CREAR = `mutation ($input: CreateServicioInput!) {
     createServicio(input: $input) { id nombre duracionEstimadaMin precioReferencia activo }
@@ -19,6 +24,7 @@ describe('Servicios GraphQL (e2e)', () => {
   beforeAll(async () => {
     mongo = await MongoMemoryServer.create();
     process.env.MONGO_URI = mongo.getUri('solicitudes_servicios_test');
+    process.env.JWT_SECRET = JWT_SECRET_TEST;
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -74,6 +80,19 @@ describe('Servicios GraphQL (e2e)', () => {
     }).expect(200);
     expect(invalido.body.errors).toBeDefined();
     expect(JSON.stringify(invalido.body.errors)).toContain('duracionEstimadaMin');
+  });
+
+  it('solo un ADMIN puede crear servicios: sin token da 401 y un PACIENTE da 403', async () => {
+    const input = { nombre: 'Inyecciones', precioReferencia: 5000 };
+
+    const sinToken = await gql(CREAR, { input }, null).expect(200);
+    expect(sinToken.body.errors[0].message).toBe('Tenés que iniciar sesión');
+
+    const comoPaciente = await gql(CREAR, { input }, PACIENTE).expect(200);
+    expect(comoPaciente.body.errors[0].message).toBe('No tenés permiso para hacer esto');
+
+    const publico = await gql(`{ servicios { nombre } }`, undefined, null).expect(200);
+    expect(publico.body.errors).toBeUndefined();
   });
 
   it('si no se indica la duración, usa 60 minutos', async () => {

@@ -4,7 +4,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller.js';
+import { AuthModule } from './auth/auth.module.js';
 import { ServiciosModule } from './servicios/servicios.module.js';
+import { SolicitudesModule } from './solicitudes/solicitudes.module.js';
 
 @Module({
   imports: [
@@ -25,8 +27,12 @@ import { ServiciosModule } from './servicios/servicios.module.js';
       autoSchemaFile: true,
       sortSchema: true,
       graphiql: true,
+      // Los guards leen el token del request también en GraphQL
+      context: ({ req }: { req: unknown }) => ({ req }),
     }),
+    AuthModule,
     ServiciosModule,
+    SolicitudesModule,
   ],
   controllers: [AppController],
 })

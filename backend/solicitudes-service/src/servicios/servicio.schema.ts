@@ -4,7 +4,19 @@ import { HydratedDocument } from 'mongoose';
 
 // La misma clase define el documento de MongoDB y el tipo de GraphQL
 @ObjectType({ description: 'Servicio del catálogo (ej: aplicación de inyectable)' })
-@Schema({ collection: 'servicios', timestamps: true })
+@Schema({
+  collection: 'servicios',
+  timestamps: true,
+  // Cuando aparece dentro de una solicitud (REST) también va con "id" en lugar de "_id"
+  toJSON: {
+    virtuals: true,
+    versionKey: false,
+    transform: (_documento, salida: Record<string, unknown>) => {
+      delete salida._id;
+      return salida;
+    },
+  },
+})
 export class Servicio {
   @Field(() => ID)
   id: string;
