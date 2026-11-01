@@ -1,0 +1,111 @@
+﻿.management-page {
+  max-width: 76rem;
+}
+
+.management-page > h1 { margin-bottom: 0.35rem; }
+
+.management-intro {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #607583;
+}
+
+.management-card {
+  display: grid;
+  gap: 1rem;
+  margin: 1rem 0;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid #dfe8ec;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 0.5rem 1.75rem rgb(25 59 77 / 5%);
+}
+
+.management-card h2,
+.management-section-heading h2 { margin: 0; font-size: 1.2rem; }
+
+.management-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.management-section-heading p {
+  margin: 0.3rem 0 0;
+  color: #607583;
+  font-size: 0.9rem;
+}
+
+.management-control-group,
+.availability-section,
+.management-form { display: grid; gap: 1rem; }
+
+.availability-toggle { display: flex; align-items: end; }
+
+.availability-row {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1.2fr) 1fr 1fr auto;
+  gap: 0.75rem;
+  align-items: end;
+  padding: 0.9rem;
+  border: 1px solid #dfe8ec;
+  border-radius: 0.8rem;
+}
+
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1.25rem 0 0.75rem;
+  border-bottom: 1px solid #dfe8ec;
+}
+
+.admin-tab {
+  min-height: 44px;
+  padding: 0.65rem 0.9rem;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  color: #607583;
+  background: transparent;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.admin-tab:hover,
+.admin-tab.is-active { color: #11658f; }
+
+.admin-tab.is-active { border-bottom-color: #167bb5; }
+
+.admin-search-form {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(12rem, 1fr);
+  gap: 0.85rem;
+  align-items: end;
+}
+
+.table-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+.table-actions .ui-button {
+  min-height: 40px;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.9rem;
+}
+
+.management-form .ui-dialog-actions { margin-top: 0.5rem; }
+
+@media (max-width: 700px) {
+  .admin-search-form { grid-template-columns: 1fr; }
+  .availability-row { grid-template-columns: 1fr 1fr; }
+  .availability-row > .ui-button { grid-column: 1 / -1; }
+  .management-section-heading { align-items: flex-start; flex-direction: column; }
+  .management-section-heading > .ui-button { width: 100%; }
+  .admin-tabs { overflow-x: auto; flex-wrap: nowrap; }
+  .admin-tab { flex: 0 0 auto; }
+}
+
+@media (max-width: 420px) {
+  .availability-row { grid-template-columns: 1fr; }
+  .table-actions { flex-direction: column; }
+}

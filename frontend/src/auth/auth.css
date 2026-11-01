@@ -1,0 +1,96 @@
+﻿.auth-page {
+  width: min(100% - 2rem, 44rem);
+  margin: 0 auto;
+  padding: clamp(2rem, 7vh, 4.5rem) 0;
+}
+
+.auth-card {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  border: 1px solid #dfe8ec;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 0.75rem 2.5rem rgb(25 59 77 / 7%);
+}
+
+.auth-card-wide { width: 100%; }
+.auth-card h1 { margin: -0.75rem 0 0; font-size: clamp(1.9rem, 5vw, 2.5rem); }
+.auth-intro, .auth-footnote, .auth-hint { margin: 0; color: #607583; }
+.auth-form { display: grid; gap: 1rem; }
+.register-form { margin-top: 0.4rem; }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.auth-submit { width: 100%; margin-top: 0.35rem; }
+.auth-submit .ui-spinner-wrap { color: inherit; }
+.auth-submit .ui-spinner-track { stroke: rgb(255 255 255 / 35%); }
+.auth-submit .ui-spinner-indicator { stroke: currentColor; }
+
+.role-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.role-choice legend { width: 100%; margin-bottom: 0.4rem; font-weight: 650; }
+
+.role-choice-option {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid #dfe8ec;
+  border-radius: 0.75rem;
+  color: #193b4d;
+  background: #fff;
+  cursor: pointer;
+}
+
+.role-choice-option.is-selected { border-color: #167bb5; background: #edf6fc; }
+.role-choice-option input, .checkbox-option input { width: 1.1rem; height: 1.1rem; accent-color: #167bb5; }
+
+.service-picker,
+.location-fields { display: grid; gap: 0.7rem; grid-column: 1 / -1; }
+
+.service-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.checkbox-option {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #dfe8ec;
+  border-radius: 0.65rem;
+  background: #fff;
+}
+
+.location-fields > .form-grid { margin-top: 0.15rem; }
+
+.auth-inline-error {
+  padding: 0.75rem;
+  border-radius: 0.7rem;
+  color: #a52e3b;
+  background: #fff2f3;
+}
+
+.home-copy { max-width: 40rem; color: #607583; font-size: 1.1rem; line-height: 1.65; }
+
+@media (max-width: 600px) {
+  .form-grid, .service-options { grid-template-columns: 1fr; }
+  .auth-page { padding-block: 1.25rem; }
+  .auth-card { padding: 1.15rem; }
+}
