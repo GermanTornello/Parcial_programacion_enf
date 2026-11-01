@@ -1,4 +1,4 @@
-﻿import { useId } from "react";
+import { useId } from "react";
 
 export function Spinner({ label = "Cargando", size = "medium", className = "" }) {
   const id = useId();

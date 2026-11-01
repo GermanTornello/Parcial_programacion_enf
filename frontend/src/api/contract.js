@@ -1,4 +1,4 @@
-﻿export { authApi } from "./auth.js";
+export { authApi } from "./auth.js";
 export { profileApi } from "./profile.js";
 export { adminApi } from "./admin.js";
 export { nursesApi } from "./nurses.js";

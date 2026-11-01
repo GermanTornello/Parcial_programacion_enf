@@ -1,4 +1,4 @@
-﻿// En producciÃƒÂ³n, sin VITE_API_URL se usa el mismo dominio del sitio: nunca localhost,
+// En producciÃƒÂ³n, sin VITE_API_URL se usa el mismo dominio del sitio: nunca localhost,
 // que en el celular de una persona apuntarÃƒÂ­a a su propio telÃƒÂ©fono.
 function resolverApiUrl() {
   const configurada = import.meta.env?.VITE_API_URL;

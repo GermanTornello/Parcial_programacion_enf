@@ -1,4 +1,4 @@
-﻿import { usuariosApi } from "./index.js";
+import { usuariosApi } from "./index.js";
 
 export const profileApi = {
   async getCurrent(signal) {

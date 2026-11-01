@@ -1,4 +1,4 @@
-﻿.solicitud-page { max-width: 760px; }
+.solicitud-page { max-width: 760px; }
 .solicitud-page .form-stack { margin-top: 24px; }
 .solicitud-page .field-hint { color: var(--muted); font-size: 14px; }
 .solicitud-toast {

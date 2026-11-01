@@ -1,4 +1,4 @@
-﻿import { catalogApi, nursesApi, requestsApi } from "../api/contract.js";
+import { catalogApi, nursesApi, requestsApi } from "../api/contract.js";
 
 const ESTADOS_ANTIGUOS = {
   PENDIENTE: "Pendiente",

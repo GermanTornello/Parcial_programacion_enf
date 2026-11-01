@@ -1,4 +1,4 @@
-﻿import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { registrarNavegacion, rutaDeLogin, sesionActual } from './api';
 import { useAuth } from './auth/AuthContext.jsx';
 import {

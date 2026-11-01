@@ -1,4 +1,4 @@
-﻿.auth-page {
+.auth-page {
   width: min(100% - 2rem, 44rem);
   margin: 0 auto;
   padding: clamp(2rem, 7vh, 4.5rem) 0;

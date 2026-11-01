@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { API_URLS, graphqlRequest } from "../api/index.js";
 import { Alert, FormField, Spinner } from "../components/index.js";

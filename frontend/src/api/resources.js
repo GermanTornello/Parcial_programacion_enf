@@ -1,4 +1,4 @@
-﻿import { solicitudesApi as solicitudesClient, API_URLS, graphqlRequest } from "./index.js";
+import { solicitudesApi as solicitudesClient, API_URLS, graphqlRequest } from "./index.js";
 
 const SERVICE_FIELDS = "id nombre descripcion duracionEstimadaMin precioReferencia activo";
 const REVIEW_FIELDS = "id solicitudId pacienteId pacienteNombre enfermeroId puntuacion comentario createdAt";

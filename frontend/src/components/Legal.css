@@ -1,4 +1,4 @@
-﻿.legal-page { min-height: 100vh; background: #f7f9fa; color: var(--ink); }
+.legal-page { min-height: 100vh; background: #f7f9fa; color: var(--ink); }
 .legal-container { width: min(820px, calc(100% - 32px)); margin-inline: auto; }
 .legal-header { background: #fff; border-bottom: 1px solid var(--border); }
 .legal-header-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 76px; }

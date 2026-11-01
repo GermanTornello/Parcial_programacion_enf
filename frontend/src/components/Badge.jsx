@@ -1,4 +1,4 @@
-﻿const STATUS_LABELS = {
+const STATUS_LABELS = {
   PENDIENTE: "Pendiente",
   ACEPTADA: "Aceptada",
   RECHAZADA: "Rechazada",

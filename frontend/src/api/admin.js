@@ -1,4 +1,4 @@
-﻿import { API_URLS } from "./config.js";
+import { API_URLS } from "./config.js";
 import { usuariosApi } from "./index.js";
 import { graphqlRequest } from "./http.js";
 

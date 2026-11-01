@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { API_URLS, graphqlRequest } from "../api/index.js";
 import { profileApi } from "../api/profile.js";
 import { Alert, Badge, FormField, Spinner } from "../components/index.js";

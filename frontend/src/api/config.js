@@ -1,4 +1,4 @@
-﻿export const TOKEN_STORAGE_KEY = "token";
+export const TOKEN_STORAGE_KEY = "token";
 export const USER_STORAGE_KEY = "usuario";
 
 export const API_URLS = {

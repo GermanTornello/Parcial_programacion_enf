@@ -1,4 +1,4 @@
-﻿export { Alert } from "./Alert.jsx";
+export { Alert } from "./Alert.jsx";
 export { Badge } from "./Badge.jsx";
 export { ConfirmDialog } from "./ConfirmDialog.jsx";
 export { DataTable } from "./DataTable.jsx";

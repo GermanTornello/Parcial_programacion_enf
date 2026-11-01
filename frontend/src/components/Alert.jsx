@@ -1,4 +1,4 @@
-﻿export function Alert({
+export function Alert({
   variant = "info",
   title,
   children,

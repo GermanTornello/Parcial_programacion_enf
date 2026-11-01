@@ -1,4 +1,4 @@
-﻿import { API_URLS } from "./config.js";
+import { API_URLS } from "./config.js";
 import { createApiClient } from "./http.js";
 
 export const usuariosApi = createApiClient(API_URLS.usuarios);

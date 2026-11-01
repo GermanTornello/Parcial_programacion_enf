@@ -1,4 +1,4 @@
-﻿import Modal from "./Modal.jsx";
+import Modal from "./Modal.jsx";
 
 export function ConfirmDialog({
   open,

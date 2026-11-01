@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { adminApi } from "../api/admin.js";
 import { Alert, Badge, ConfirmDialog, DataTable, FormField, Modal, SearchBar, Spinner } from "../components/index.js";
 

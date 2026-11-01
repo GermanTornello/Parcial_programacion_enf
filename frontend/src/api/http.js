@@ -1,4 +1,4 @@
-﻿import axios from "axios";
+import axios from "axios";
 import { TOKEN_STORAGE_KEY, USER_STORAGE_KEY } from "./config.js";
 
 const graphqlClients = new Map();
