@@ -1,8 +1,11 @@
+import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { GraphQLModule } from '@nestjs/graphql';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller.js';
 import { AuthModule } from './auth/auth.module.js';
+import { ResenasModule } from './resenas/resenas.module.js';
 
 @Module({
   imports: [
@@ -14,7 +17,17 @@ import { AuthModule } from './auth/auth.module.js';
         uri: config.get<string>('MONGO_URI', 'mongodb://localhost:27017/resenas_db'),
       }),
     }),
+    // GraphQL code-first: el esquema se genera en memoria a partir de las clases
+    GraphQLModule.forRoot<ApolloDriverConfig>({
+      driver: ApolloDriver,
+      autoSchemaFile: true,
+      sortSchema: true,
+      graphiql: true,
+      // Los guards leen el token del request también en GraphQL
+      context: ({ req }: { req: unknown }) => ({ req }),
+    }),
     AuthModule,
+    ResenasModule,
   ],
   controllers: [AppController],
 })
