@@ -106,4 +106,31 @@ describe('Solicitudes REST (e2e)', () => {
     await http().post('/solicitudes').send({}).expect(401);
     await http().post('/solicitudes').set(como(ENFERMERA)).send({}).expect(403);
   });
+
+  it('chat: pide → escribe → acepta → responde; otro paciente 403; al terminar queda solo para leer', async () => {
+    const pedido = { enfermeroId: ENFERMERA_ID, servicioId, fecha: enDias(12), hora: '09:00', direccionAtencion: 'Belgrano 900' };
+    const { body: solicitud } = await http().post('/solicitudes').set(como(PACIENTE)).send(pedido).expect(201);
+    const chat = `/solicitudes/${solicitud.id}/mensajes`;
+
+    // Con la solicitud PENDIENTE ya se puede consultar
+    await http().post(chat).set(como(PACIENTE)).send({ texto: '  Hola Laura, ¿podés a la mañana?  ' }).expect(201);
+    await http().patch(`/solicitudes/${solicitud.id}/aceptar`).set(como(ENFERMERA)).expect(200);
+    await http().post(chat).set(como(ENFERMERA)).send({ texto: 'Sí, a las 9 estoy ahí' }).expect(201);
+
+    const { body: mensajes } = await http().get(chat).set(como(ENFERMERA)).expect(200);
+    expect(mensajes.map((m: { autorNombre: string; texto: string }) => [m.autorNombre, m.texto])).toEqual([
+      ['Ana Pérez', 'Hola Laura, ¿podés a la mañana?'],
+      ['Laura Gómez', 'Sí, a las 9 estoy ahí'],
+    ]);
+
+    await http().get(chat).set(como(OTRO_PACIENTE)).expect(403);
+    await http().post(chat).set(como(OTRO_PACIENTE)).send({ texto: 'Hola' }).expect(403);
+    await http().post(chat).set(como(PACIENTE)).send({ texto: '   ' }).expect(400);
+
+    // Terminado el servicio: se lee pero no se escribe
+    await http().patch(`/solicitudes/${solicitud.id}/realizar`).set(como(ENFERMERA)).expect(200);
+    const cerrado = await http().post(chat).set(como(PACIENTE)).send({ texto: '¡Gracias!' }).expect(400);
+    expect(cerrado.body.message).toContain('El chat está cerrado');
+    await http().get(chat).set(como(PACIENTE)).expect(200);
+  });
 });

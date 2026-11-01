@@ -5,6 +5,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller.js';
 import { AuthModule } from './auth/auth.module.js';
+import { MensajesModule } from './mensajes/mensajes.module.js';
 import { ServiciosModule } from './servicios/servicios.module.js';
 import { SolicitudesModule } from './solicitudes/solicitudes.module.js';
 
@@ -33,6 +34,7 @@ import { SolicitudesModule } from './solicitudes/solicitudes.module.js';
     AuthModule,
     ServiciosModule,
     SolicitudesModule,
+    MensajesModule,
   ],
   controllers: [AppController],
 })
