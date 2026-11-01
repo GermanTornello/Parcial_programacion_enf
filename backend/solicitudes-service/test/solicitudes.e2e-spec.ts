@@ -1,9 +1,10 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
+import { configurarApp } from './../src/configurar-app.js';
 import { UsuariosClient } from './../src/solicitudes/usuarios.client.js';
 import { ADMIN, ENFERMERA, JWT_SECRET_TEST, OTRA_ENFERMERA, OTRO_PACIENTE, PACIENTE } from './tokens.js';
 
@@ -39,7 +40,7 @@ describe('Solicitudes REST (e2e)', () => {
       .useValue(usuariosSimulado)
       .compile();
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    configurarApp(app);
     await app.init();
 
     const creado = await http()
