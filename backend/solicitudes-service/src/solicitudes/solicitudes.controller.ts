@@ -36,6 +36,7 @@ export class SolicitudesController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Detalle de una solicitud (participantes o ADMIN)' })
+  @ApiResponse({ status: 200, description: 'La solicitud con su servicio' })
   @ApiResponse({ status: 403, description: 'No participa de la solicitud' })
   @ApiResponse({ status: 404, description: 'La solicitud no existe' })
   findOne(@UsuarioActual() usuario: UsuarioToken, @Param('id') id: string) {
@@ -45,6 +46,10 @@ export class SolicitudesController {
   @Patch(':id/aceptar')
   @Roles(Rol.ENFERMERO)
   @ApiOperation({ summary: 'El enfermero acepta una solicitud PENDIENTE' })
+  @ApiResponse({ status: 200, description: 'Solicitud con el estado nuevo' })
+  @ApiResponse({ status: 400, description: 'El estado actual no permite este cambio' })
+  @ApiResponse({ status: 403, description: 'No es el enfermero (o paciente) de la solicitud' })
+  @ApiResponse({ status: 404, description: 'La solicitud no existe' })
   aceptar(@UsuarioActual() usuario: UsuarioToken, @Param('id') id: string) {
     return this.solicitudesService.aceptar(usuario, id);
   }
@@ -52,6 +57,10 @@ export class SolicitudesController {
   @Patch(':id/rechazar')
   @Roles(Rol.ENFERMERO)
   @ApiOperation({ summary: 'El enfermero rechaza una solicitud PENDIENTE (motivo opcional)' })
+  @ApiResponse({ status: 200, description: 'Solicitud con el estado nuevo' })
+  @ApiResponse({ status: 400, description: 'El estado actual no permite este cambio' })
+  @ApiResponse({ status: 403, description: 'No es el enfermero (o paciente) de la solicitud' })
+  @ApiResponse({ status: 404, description: 'La solicitud no existe' })
   rechazar(@UsuarioActual() usuario: UsuarioToken, @Param('id') id: string, @Body() dto: MotivoDto) {
     return this.solicitudesService.rechazar(usuario, id, dto.motivo);
   }
@@ -59,6 +68,10 @@ export class SolicitudesController {
   @Patch(':id/cancelar')
   @Roles(Rol.PACIENTE, Rol.ENFERMERO)
   @ApiOperation({ summary: 'Cancela una solicitud PENDIENTE o ACEPTADA (motivo obligatorio si cancela el enfermero)' })
+  @ApiResponse({ status: 200, description: 'Solicitud con el estado nuevo' })
+  @ApiResponse({ status: 400, description: 'El estado actual no permite este cambio' })
+  @ApiResponse({ status: 403, description: 'No es el enfermero (o paciente) de la solicitud' })
+  @ApiResponse({ status: 404, description: 'La solicitud no existe' })
   cancelar(@UsuarioActual() usuario: UsuarioToken, @Param('id') id: string, @Body() dto: MotivoDto) {
     return this.solicitudesService.cancelar(usuario, id, dto.motivo);
   }
@@ -66,6 +79,10 @@ export class SolicitudesController {
   @Patch(':id/realizar')
   @Roles(Rol.ENFERMERO)
   @ApiOperation({ summary: 'El enfermero marca como REALIZADA una solicitud ACEPTADA' })
+  @ApiResponse({ status: 200, description: 'Solicitud con el estado nuevo' })
+  @ApiResponse({ status: 400, description: 'El estado actual no permite este cambio' })
+  @ApiResponse({ status: 403, description: 'No es el enfermero (o paciente) de la solicitud' })
+  @ApiResponse({ status: 404, description: 'La solicitud no existe' })
   realizar(@UsuarioActual() usuario: UsuarioToken, @Param('id') id: string) {
     return this.solicitudesService.realizar(usuario, id);
   }
