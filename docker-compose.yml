@@ -1,0 +1,93 @@
+# Enfered: levanta todo con un solo comando
+#   docker compose up --build
+# Frontend: http://localhost:5173 · Swagger: http://localhost:3001/docs, :3002/docs, :3003/docs
+# Las variables se pueden cambiar en un archivo .env en esta carpeta (ver .env.example).
+
+services:
+  mongo:
+    image: mongo:8.2
+    restart: unless-stopped
+    # Solo accesible desde esta compu (para Compass); los servicios usan la red interna de Docker.
+    # Si ya tenés MongoDB instalado en el 27017, cambiá el puerto con MONGO_PORT=27018 en el .env
+    ports:
+      - "127.0.0.1:${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongo_data:/data/db
+      # Scripts de inicialización: solo corren la primera vez que se crea el volumen
+      - ./docker/mongo-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # Se consulta por la IP del contenedor (no localhost): la Mongo temporal que corre los scripts
+      # de init escucha solo en localhost, así el servicio no se marca "sano" antes de tiempo
+      test: ["CMD-SHELL", "mongosh --quiet --host \"$(hostname -i)\" --eval \"db.adminCommand('ping').ok\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      # La primera vez Mongo corre los scripts de init antes de aceptar conexiones de afuera
+      start_period: 20s
+
+  usuarios-service:
+    build: ./backend/usuarios-service
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      MONGO_URI: mongodb://mongo:27017/usuarios_db
+      JWT_SECRET: ${JWT_SECRET:-supersecreto_tp_prog3}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@enfered.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin123!}
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  solicitudes-service:
+    build: ./backend/solicitudes-service
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      MONGO_URI: mongodb://mongo:27017/solicitudes_db
+      JWT_SECRET: ${JWT_SECRET:-supersecreto_tp_prog3}
+      USUARIOS_URL: http://usuarios-service:3001
+    depends_on:
+      mongo:
+        condition: service_healthy
+      usuarios-service:
+        condition: service_started
+
+  resenas-service:
+    build: ./backend/resenas-service
+    restart: unless-stopped
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      MONGO_URI: mongodb://mongo:27017/resenas_db
+      JWT_SECRET: ${JWT_SECRET:-supersecreto_tp_prog3}
+      SOLICITUDES_URL: http://solicitudes-service:3002
+    depends_on:
+      mongo:
+        condition: service_healthy
+      solicitudes-service:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+      # Vite mete las VITE_* en el código al compilar: van como build args, no como environment.
+      # Son direcciones que usa el NAVEGADOR, por eso apuntan a localhost y no al nombre del contenedor.
+      args:
+        VITE_USUARIOS_URL: ${VITE_USUARIOS_URL:-http://localhost:3001}
+        VITE_SOLICITUDES_URL: ${VITE_SOLICITUDES_URL:-http://localhost:3002}
+        VITE_RESENAS_URL: ${VITE_RESENAS_URL:-http://localhost:3003}
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - usuarios-service
+      - solicitudes-service
+      - resenas-service
+
+volumes:
+  mongo_data:
