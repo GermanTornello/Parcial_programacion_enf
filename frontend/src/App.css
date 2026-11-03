@@ -137,6 +137,7 @@
 .site-footer > span {
   margin-left: auto;
 }
+.page,
 .page-container {
   width: min(100%, 1296px);
   margin: 0 auto;
@@ -2422,6 +2423,7 @@ button.notification-item:hover {
     width: 44px;
     height: 44px;
   }
+  .page,
   .page-container {
     padding: 30px 22px;
   }
@@ -2558,6 +2560,7 @@ button.notification-item:hover {
   .nurse-requests-label {
     display: none;
   }
+  .page,
   .page-container {
     padding: 25px 16px;
   }

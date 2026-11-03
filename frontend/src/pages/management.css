@@ -1,5 +1,5 @@
 .management-page {
-  max-width: 76rem;
+  max-width: 1296px;
 }
 
 .management-page > h1 { margin-bottom: 0.35rem; }
@@ -7,7 +7,7 @@
 .management-intro {
   margin-top: 0;
   margin-bottom: 1.5rem;
-  color: #607583;
+  color: var(--muted);
 }
 
 .management-card {
@@ -15,7 +15,7 @@
   gap: 1rem;
   margin: 1rem 0;
   padding: clamp(1rem, 3vw, 1.5rem);
-  border: 1px solid #dfe8ec;
+  border: 1px solid var(--border);
   border-radius: 1rem;
   background: #fff;
   box-shadow: 0 0.5rem 1.75rem rgb(25 59 77 / 5%);
@@ -33,7 +33,7 @@
 
 .management-section-heading p {
   margin: 0.3rem 0 0;
-  color: #607583;
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
@@ -49,7 +49,7 @@
   gap: 0.75rem;
   align-items: end;
   padding: 0.9rem;
-  border: 1px solid #dfe8ec;
+  border: 1px solid var(--border);
   border-radius: 0.8rem;
 }
 
@@ -58,7 +58,7 @@
   flex-wrap: wrap;
   gap: 0.5rem;
   margin: 1.25rem 0 0.75rem;
-  border-bottom: 1px solid #dfe8ec;
+  border-bottom: 1px solid var(--border);
 }
 
 .admin-tab {
@@ -66,7 +66,7 @@
   padding: 0.65rem 0.9rem;
   border: 0;
   border-bottom: 3px solid transparent;
-  color: #607583;
+  color: var(--muted);
   background: transparent;
   font: inherit;
   font-weight: 650;
@@ -74,9 +74,9 @@
 }
 
 .admin-tab:hover,
-.admin-tab.is-active { color: #11658f; }
+.admin-tab.is-active { color: var(--blue-dark); }
 
-.admin-tab.is-active { border-bottom-color: #167bb5; }
+.admin-tab.is-active { border-bottom-color: var(--blue); }
 
 .admin-search-form {
   display: grid;
