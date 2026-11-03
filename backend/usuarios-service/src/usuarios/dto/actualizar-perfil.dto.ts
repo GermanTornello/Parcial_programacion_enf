@@ -17,7 +17,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { Opcional } from '../../common/validacion.js';
+import { Borrable, Opcional } from '../../common/validacion.js';
 import { UbicacionDto } from '../../auth/dto/registro.dto.js';
 import { DEPARTAMENTOS } from '../departamentos.js';
 
@@ -82,26 +82,36 @@ export class ActualizarPerfilDto {
   direccion?: string;
 
   // Paciente
-  @ApiPropertyOptional({ description: 'Solo paciente' })
-  @Opcional()
+  // Los campos @Borrable aceptan null para borrar el dato (por ejemplo, "sin fecha de nacimiento")
+  @ApiPropertyOptional({
+    description: 'Solo paciente. null la borra',
+    nullable: true,
+  })
+  @Borrable()
   @IsDateString({}, { message: 'La fecha de nacimiento no es válida' })
-  fechaNacimiento?: string;
+  fechaNacimiento?: string | null;
 
-  @ApiPropertyOptional({ description: 'Solo paciente' })
-  @Opcional()
+  @ApiPropertyOptional({
+    description: 'Solo paciente. null la borra',
+    nullable: true,
+  })
+  @Borrable()
   @MaxLength(100, {
     message: '$property puede tener hasta $constraint1 caracteres',
   })
   @IsString({ message: '$property tiene que ser un texto' })
-  obraSocial?: string;
+  obraSocial?: string | null;
 
-  @ApiPropertyOptional({ description: 'Solo paciente' })
-  @Opcional()
+  @ApiPropertyOptional({
+    description: 'Solo paciente. null los borra',
+    nullable: true,
+  })
+  @Borrable()
   @MaxLength(1000, {
     message: '$property puede tener hasta $constraint1 caracteres',
   })
   @IsString({ message: '$property tiene que ser un texto' })
-  datosMedicos?: string;
+  datosMedicos?: string | null;
 
   // Enfermero
   @ApiPropertyOptional({
@@ -139,11 +149,14 @@ export class ActualizarPerfilDto {
   @IsInt({ message: '$property tiene que ser un número entero' })
   aniosExperiencia?: number;
 
-  @ApiPropertyOptional({ description: 'Solo enfermero' })
-  @Opcional()
+  @ApiPropertyOptional({
+    description: 'Solo enfermero. null la borra',
+    nullable: true,
+  })
+  @Borrable()
   @Min(0, { message: 'La tarifa no puede ser negativa' })
   @IsNumber({}, { message: '$property tiene que ser un número' })
-  tarifaHora?: number;
+  tarifaHora?: number | null;
 
   @ApiPropertyOptional({
     description:
@@ -185,11 +198,14 @@ export class ActualizarPerfilDto {
   @IsArray({ message: '$property tiene que ser una lista' })
   disponibilidad?: FranjaDto[];
 
-  @ApiPropertyOptional({ description: 'Solo enfermero' })
-  @Opcional()
+  @ApiPropertyOptional({
+    description: 'Solo enfermero. null la borra',
+    nullable: true,
+  })
+  @Borrable()
   @MaxLength(1000, {
     message: '$property puede tener hasta $constraint1 caracteres',
   })
   @IsString({ message: '$property tiene que ser un texto' })
-  descripcion?: string;
+  descripcion?: string | null;
 }

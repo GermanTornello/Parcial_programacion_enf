@@ -82,7 +82,10 @@ export class UsuariosService {
 
     const cambios: Record<string, unknown> = {};
     for (const campo of EDITABLES[usuario.rol]) {
-      if (dto[campo] !== undefined) {
+      if (dto[campo] === null) {
+        // Solo llega null en los campos @Borrable: se quita el dato
+        cambios[campo] = undefined;
+      } else if (dto[campo] !== undefined) {
         cambios[campo] = dto[campo];
       }
     }
