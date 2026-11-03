@@ -1,4 +1,4 @@
-import { DAYS } from '../api';
+import { DIAS_SEMANA as DAYS } from '../api/cartilla';
 import { nombreServicios } from './nombreServicios';
 
 export default function DirectoryFilters({

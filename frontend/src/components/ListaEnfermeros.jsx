@@ -5,8 +5,15 @@ import Icon from './ui/Icon';
 import DirectoryFilters from './DirectoryFilters';
 import { nombreServicios } from './nombreServicios';
 import { formatoPuntuacion } from './SelectorEstrellas';
-import { requestApi as api, formatPrice, sesionActual } from '../api';
-import { buscarDireccion } from './useUbicacion';
+import { formatPrice, sesionActual } from '../api';
+import {
+  buscarCartilla,
+  buscarDireccion,
+  buscarPacientesAsignados,
+  cargarEspecialidades,
+  cargarServicios,
+  DEPARTAMENTOS_CONTRATO,
+} from '../api/cartilla';
 const MapaEnfermeros = lazy(() => import('./MapaEnfermeros'));
 
 const FILTERS = [
@@ -25,9 +32,17 @@ const UBICACION = ['lat', 'lng', 'radio_km'];
 const HORARIO_PARCIAL = 'horario';
 const HORAS = ['hora_desde', 'hora_hasta'];
 const RADIOS_KM = ['5', '10', '25', '50'];
-// El mapa junta todas las páginas del filtro (100 por pedido, el máximo del backend).
+// El mapa muestra a todos los que cumplen el filtro (la búsqueda devuelve hasta 100).
 const POR_PAGINA_MAPA = 100;
-const MAX_PAGINAS_MAPA = 10;
+// Los errores de axios traen el mensaje del backend en response.data.message (texto o lista)
+const mensajeDeError = (err) => {
+  const mensaje = err?.response?.data?.message;
+  if (Array.isArray(mensaje)) return mensaje.join('. ');
+  if (mensaje) return mensaje;
+  return err?.response
+    ? 'Hubo un problema al buscar. Probá de nuevo en unos minutos.'
+    : 'No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.';
+};
 const optionalNumber = (value) =>
   value == null || value === '' || !Number.isFinite(Number(value))
     ? null
@@ -116,24 +131,14 @@ export default function ListaEnfermeros() {
   useEffect(() => {
     if (nurse) return undefined;
     const controller = new AbortController();
-    api('/enfermeros', { signal: controller.signal })
-      .then((list) => {
-        // "Pediatria" y "Pediatría" son la misma especialidad: queda la primera forma escrita
-        // (la búsqueda del servidor no distingue tildes ni mayúsculas).
-        const unicas = new Map();
-        list.forEach((person) => {
-          const nombre = String(person.especialidad || '').trim();
-          const clave = nombre.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-          if (nombre && !unicas.has(clave)) unicas.set(clave, nombre);
-        });
-        setSpecialties([...unicas.values()].sort((a, b) => a.localeCompare(b, 'es')));
-      })
+    // Opciones de los filtros: especialidades de los enfermeros aprobados, los departamentos
+    // del contrato y el catálogo de servicios (GraphQL). Si alguna falla, ese filtro queda vacío.
+    cargarEspecialidades(controller.signal)
+      .then((lista) => { if (!controller.signal.aborted) setSpecialties(lista); })
       .catch(() => {});
-    api('/enfermeros/ciudades', { signal: controller.signal })
-      .then((lista) => setZonas(Array.isArray(lista) ? lista : []))
-      .catch(() => {});
-    api('/servicios', { signal: controller.signal })
-      .then((lista) => setServicios(Array.isArray(lista) ? lista : []))
+    setZonas(DEPARTAMENTOS_CONTRATO);
+    cargarServicios()
+      .then((lista) => { if (!controller.signal.aborted) setServicios(lista); })
       .catch(() => {});
     return () => controller.abort();
   }, [nurse]);
@@ -153,15 +158,11 @@ export default function ListaEnfermeros() {
         search.set('per_page', '6');
         search.set('page', String(page));
         const results = nurse
-          ? await api(`/pacientes/solicitudes-activas?${search}`, {
-            signal: controller.signal,
-          }).then((response) => ({ ...response, enfermeros: response.pacientes }))
-          : await api(`/enfermeros/buscar?${search}`, {
-            signal: controller.signal,
-          });
+          ? await buscarPacientesAsignados(search, controller.signal)
+          : await buscarCartilla(search, controller.signal);
         if (!controller.signal.aborted) setData(results);
       } catch (err) {
-        if (!controller.signal.aborted) setError(err.message);
+        if (!controller.signal.aborted) setError(mensajeDeError(err));
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
@@ -177,18 +178,13 @@ export default function ListaEnfermeros() {
     if (!showMap || (!nurse && (invalidRange || invalidHoursRange))) return undefined;
     const controller = new AbortController();
     const timer = setTimeout(async () => {
-      const ruta = nurse ? '/pacientes/solicitudes-activas' : '/enfermeros/buscar';
-      const personas = [];
       try {
-        for (let pagina = 1; pagina <= MAX_PAGINAS_MAPA; pagina += 1) {
-          const search = new URLSearchParams(mapKey);
-          search.set('per_page', String(POR_PAGINA_MAPA));
-          search.set('page', String(pagina));
-          const resultado = await api(`${ruta}?${search}`, { signal: controller.signal });
-          personas.push(...((nurse ? resultado.pacientes : resultado.enfermeros) || []));
-          if (pagina >= (resultado.total_paginas || 0)) break;
-        }
-        if (!controller.signal.aborted) setMapa({ clave: mapKey, personas });
+        const search = new URLSearchParams(mapKey);
+        search.set('per_page', String(POR_PAGINA_MAPA));
+        const resultado = nurse
+          ? await buscarPacientesAsignados(search, controller.signal)
+          : await buscarCartilla(search, controller.signal);
+        if (!controller.signal.aborted) setMapa({ clave: mapKey, personas: resultado.enfermeros });
       } catch {
         // Si falla, el mapa sigue mostrando a los de la página actual.
         if (!controller.signal.aborted) setMapa({ clave: mapKey, personas: null });
