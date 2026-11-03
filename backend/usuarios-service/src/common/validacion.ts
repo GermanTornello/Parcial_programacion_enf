@@ -7,6 +7,15 @@ import { ValidateBy, ValidateIf, ValidationOptions } from 'class-validator';
 export const Opcional = () =>
   ValidateIf((_objeto: object, valor: unknown) => valor !== undefined);
 
+/**
+ * Campo opcional que además se puede borrar mandando `null` (fecha de nacimiento, tarifa…):
+ * el null no se valida y el servicio quita el dato.
+ */
+export const Borrable = () =>
+  ValidateIf(
+    (_objeto: object, valor: unknown) => valor !== undefined && valor !== null,
+  );
+
 /** Largo máximo en bytes (bcrypt solo usa los primeros 72 bytes, y una "ñ" ocupa 2). */
 export const MaxBytes = (maximo: number, opciones?: ValidationOptions) =>
   ValidateBy(

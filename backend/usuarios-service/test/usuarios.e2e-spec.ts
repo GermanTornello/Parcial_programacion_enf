@@ -161,6 +161,21 @@ describe('usuarios-service (e2e)', () => {
       .expect(400);
     expect(conNull.body.message).toEqual(['El nombre no puede quedar vacío']);
 
+    // Lo que manda el front al guardar el perfil sin fecha de nacimiento: null borra el dato
+    await http()
+      .patch('/perfil')
+      .set(como(token))
+      .send({ fechaNacimiento: '1990-05-20' })
+      .expect(200);
+    const borrado = await http()
+      .patch('/perfil')
+      .set(como(token))
+      .send({ nombre: 'Beto', fechaNacimiento: null, obraSocial: null })
+      .expect(200);
+    expect(borrado.body.fechaNacimiento).toBeUndefined();
+    expect(borrado.body.obraSocial).toBeUndefined();
+    expect(borrado.body.nombre).toBe('Beto');
+
     await http().get('/auth/me').expect(401);
   });
 
