@@ -5,9 +5,9 @@ Marketplace de enfermería domiciliaria en Mendoza: conecta pacientes con enferm
 
 ## Integrantes
 - Germán Tornello
-- Leo
-- Santiago
-- Pablo
+- Leo Echevaria
+- Pablo Mercado
+- Santiago Mercado
 
 ## Qué problema resuelve
 Conseguir un enfermero/a a domicilio hoy es informal: "boca a boca", grupos de WhatsApp o agencias. Hay demoras, no hay garantía de que el profesional esté matriculado y es difícil resolver necesidades puntuales (una inyección, una curación, un control de signos vitales). Enfered permite buscar enfermeros cercanos y verificados, pedirles un servicio, coordinar por chat y calificarlos al final.
