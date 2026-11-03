@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { requestApi as api, DAYS, sesionActual } from '../api';
+import { sesionActual } from '../api';
+import { cargarPerfilPublico, DIAS_SEMANA as DAYS } from '../api/cartilla';
 import Avatar from './ui/Avatar';
 import Icon from './ui/Icon';
 import ProfileSkeleton from './ui/ProfileSkeleton';
@@ -17,12 +18,15 @@ export default function VerPerfiles() {
     const controller = new AbortController();
     setProfile(null);
     setError('');
-    api(`/usuarios/${id}`, { signal: controller.signal })
+    cargarPerfilPublico(id, controller.signal)
       .then((data) => {
         if (!controller.signal.aborted) setProfile(data);
       })
       .catch((err) => {
-        if (!controller.signal.aborted) setError(err.message);
+        if (controller.signal.aborted) return;
+        setError(err?.response?.status === 404
+          ? 'Este profesional no existe o ya no está en Enfered.'
+          : 'No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.');
       });
     return () => controller.abort();
   }, [id, retry]);
@@ -33,7 +37,7 @@ export default function VerPerfiles() {
         DAYS.indexOf(a.dia_semana) - DAYS.indexOf(b.dia_semana) ||
         a.hora_inicio.localeCompare(b.hora_inicio),
     );
-  // Las reseñas usan el ID de perfil; la ruta /perfil/:id usa Usuario.id.
+  // En el contrato el id del enfermero es el mismo del usuario (resenas-service lo guarda así)
   const idEnfermero = profile?.enfermero_id ?? profile?.idEnfermero;
   const returnPath = location.state?.from || location.state?.volverA;
   const back = returnPath?.startsWith('/cartilla') ? returnPath : '/cartilla';
