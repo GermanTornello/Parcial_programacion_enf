@@ -19,8 +19,8 @@ import Landing from './components/Landing';
 import CargaPantalla from './components/ui/CargaPantalla';
 import './App.css';
 
-// Carga por partes: el cÃ³digo de estas pantallas se descarga reciÃ©n cuando se abren,
-// asÃ­ la primera vista llega antes en celulares con poca seÃ±al.
+// Carga por partes: el código de estas pantallas se descarga recién cuando se abren,
+// así la primera vista llega antes en celulares con poca señal.
 const VerPerfiles = lazy(() => import('./components/VerPerfiles'));
 const ListaEnfermeros = lazy(() => import('./components/ListaEnfermeros'));
 const SolicitarServicio = lazy(() => import('./components/SolicitarServicio'));
@@ -30,12 +30,12 @@ const EstadoSolicitudes = lazy(() => import('./components/EstadoSolicitudes'));
 const Privacidad = lazy(() => import('./components/Legal').then((m) => ({ default: m.Privacidad })));
 const Terminos = lazy(() => import('./components/Legal').then((m) => ({ default: m.Terminos })));
 
-const TITULO_INICIAL = 'Enfered Â· Cuidado cerca tuyo';
+const TITULO_INICIAL = 'Enfered · Cuidado cerca tuyo';
 const TITULOS = [
-  [/^\/login$/, 'Iniciar sesiÃ³n'],
+  [/^\/login$/, 'Iniciar sesión'],
   [/^\/registro$/, 'Crear cuenta'],
-  [/^\/terminos$/, 'TÃ©rminos y condiciones'],
-  [/^\/privacidad$/, 'PolÃ­tica de privacidad'],
+  [/^\/terminos$/, 'Términos y condiciones'],
+  [/^\/privacidad$/, 'Política de privacidad'],
   [/^\/home$/, 'Inicio'],
   [/^\/cartilla$/, 'Cartilla'],
   [/^\/perfil\/[^/]+\/solicitar$/, 'Pedir un turno'],
@@ -45,7 +45,7 @@ const TITULOS = [
   [/^\/mis-solicitudes$/, 'Mis solicitudes'],
   [/^\/perfil-paciente$/, 'Mi perfil'],
   [/^\/perfil-enfermero$/, 'Mi perfil profesional'],
-  [/^\/admin$/, 'Panel de administraciÃ³n'],
+  [/^\/admin$/, 'Panel de administración'],
 ];
 
 function EntryRoute() {
@@ -68,7 +68,7 @@ function ScrollToTop() {
         scroll();
         return;
       }
-      // El perfil carga sus secciones despuÃ©s de consultar la API.
+      // El perfil carga sus secciones después de consultar la API.
       const observer = new window.MutationObserver(() => {
         if (target()) {
           scroll();
@@ -93,14 +93,14 @@ function enfocar(elemento) {
   return true;
 }
 
-// TÃ­tulo de la pestaÃ±a por pantalla y, al navegar, foco en el tÃ­tulo para que el lector
-// de pantalla anuncie la pÃ¡gina nueva en lugar de quedarse en el enlace tocado.
+// Título de la pestaña por pantalla y, al navegar, foco en el título para que el lector
+// de pantalla anuncie la página nueva en lugar de quedarse en el enlace tocado.
 function TituloYFoco() {
   const { pathname, hash } = useLocation();
   const primeraVista = useRef(true);
   useEffect(() => {
     const titulo = TITULOS.find(([patron]) => patron.test(pathname))?.[1];
-    document.title = titulo ? `${titulo} Â· Enfered` : TITULO_INICIAL;
+    document.title = titulo ? `${titulo} · Enfered` : TITULO_INICIAL;
     if (primeraVista.current) {
       primeraVista.current = false;
       return undefined;
@@ -108,7 +108,7 @@ function TituloYFoco() {
     if (hash) return undefined;
     const buscarTitulo = () => document.querySelector('#contenido h1') || document.querySelector('h1');
     if (enfocar(buscarTitulo())) return undefined;
-    // Las pantallas por partes o que consultan la API muestran el tÃ­tulo un momento despuÃ©s.
+    // Las pantallas por partes o que consultan la API muestran el título un momento después.
     const observer = new window.MutationObserver(() => {
       if (enfocar(buscarTitulo())) observer.disconnect();
     });
@@ -125,7 +125,7 @@ function TituloYFoco() {
   return null;
 }
 
-// Un 401 en cualquier pedido vuelve al login con la navegaciÃ³n del router, sin recargar.
+// Un 401 en cualquier pedido vuelve al login con la navegación del router, sin recargar.
 function ConectarSesion() {
   const navigate = useNavigate();
   useEffect(() => {

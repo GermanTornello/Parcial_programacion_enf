@@ -1,4 +1,4 @@
-import { catalogApi, nursesApi, requestsApi } from "../api/contract.js";
+import { catalogApi, nursesApi, profileApi, requestsApi, resenasApi } from "../api/contract.js";
 
 const ESTADOS_ANTIGUOS = {
   PENDIENTE: "Pendiente",
@@ -121,6 +121,57 @@ export async function obtenerSolicitudesPaciente(_id, signal) {
   const response = await requestsApi.list({}, signal);
   const items = Array.isArray(response) ? response : response?.solicitudes;
   return Array.isArray(items) ? items.map(adaptarSolicitud) : items;
+}
+
+// Perfil del usuario logueado (GET /auth/me). En el contrato el id del paciente y del
+// enfermero es el mismo id del usuario.
+export async function obtenerPerfilPropio(signal) {
+  const user = await profileApi.getCurrent(signal);
+  return { ...user, idPaciente: user?.id, idEnfermero: user?.id };
+}
+
+export async function actualizarTelefono(telefono) {
+  return profileApi.update({ telefono });
+}
+
+// Mensaje del contrato ({ id, autorId, autorNombre, texto, createdAt }) con los nombres de PP3.
+function adaptarMensaje(value) {
+  return {
+    ...value,
+    idMensaje: value.idMensaje ?? value.id,
+    idEmisor: value.idEmisor ?? value.autorId,
+    contenido: value.contenido ?? value.texto,
+    fechaHora: value.fechaHora ?? value.createdAt,
+  };
+}
+
+export async function obtenerMensajes(idSolicitud, signal) {
+  const items = await requestsApi.messages(idSolicitud, signal);
+  return Array.isArray(items) ? items.map(adaptarMensaje) : items;
+}
+
+export async function enviarMensaje(idSolicitud, contenido) {
+  return adaptarMensaje(await requestsApi.sendMessage(idSolicitud, contenido));
+}
+
+// Reseñas del paciente (GraphQL misResenas) indexadas por solicitud: dicen qué atención ya calificó.
+export async function calificacionesPropias() {
+  const resenas = await resenasApi.mine();
+  return Object.fromEntries(resenas.map((resena) => [resena.solicitudId, {
+    idCalificacion: resena.id,
+    idSolicitud: resena.solicitudId,
+    estrellas: resena.puntuacion,
+    comentario: resena.comentario ?? "",
+  }]));
+}
+
+export async function calificarSolicitud({ idSolicitud, puntuacion, comentario }) {
+  const resena = await resenasApi.create({
+    solicitudId: String(idSolicitud),
+    puntuacion,
+    ...(comentario?.trim() ? { comentario: comentario.trim() } : {}),
+  });
+  return { idResena: resena.id, puntuacion: resena.puntuacion, comentario: resena.comentario ?? "" };
 }
 
 export function errorSolicitud(error) {

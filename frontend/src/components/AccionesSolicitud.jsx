@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { requestApi as api, enlaceWhatsapp, sesionActual } from '../api';
+import { enlaceWhatsapp } from '../api';
+import { calificacionesPropias } from '../services/solicitudes';
 import { fechaLegible } from '../fechas';
 import CalificarSolicitud from './CalificarSolicitud';
 import { EstrellasLectura } from './SelectorEstrellas';
@@ -23,11 +24,9 @@ export function whatsappParaPaciente(solicitud) {
 }
 export const NOTA_WHATSAPP_PACIENTE = 'Cuando el profesional acepte el turno, también vas a poder seguir la charla por WhatsApp.';
 
-// El historial es lo único que dice si una atención Realizada ya tiene reseña.
-export async function calificacionesDelHistorial(signal) {
-  const historial = await api(`/usuarios/${sesionActual()?.sub}/historial`, { signal });
-  if (!Array.isArray(historial)) return {};
-  return Object.fromEntries(historial.map((item) => [item.idSolicitud, (item.calificaciones || [])[0] || null]));
+// misResenas (GraphQL) dice qué atención Realizada ya tiene reseña del paciente.
+export async function calificacionesDelHistorial() {
+  return calificacionesPropias();
 }
 
 // onAlternarChat: en Mis solicitudes el chat se abre dentro de la tarjeta (en el comprobante ya está abierto).

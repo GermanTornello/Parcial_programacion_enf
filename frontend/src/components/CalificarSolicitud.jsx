@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { requestApi as api } from '../api';
+import { calificarSolicitud, errorSolicitud } from '../services/solicitudes';
 import { fechaLegible } from '../fechas';
 import ModalCalificacion from './ModalCalificacion';
 
@@ -16,10 +16,9 @@ export default function CalificarSolicitud({ solicitud, onCalificada }) {
     setGuardando(true);
     setError('');
     try {
-      const resultado = await api('/resenas', {
-        method: 'POST',
-        body: { idSolicitud: solicitud.idSolicitud, puntuacion: estrellas, comentario },
-      });
+      // createResena (resenas-service, GraphQL); el backend rechaza una segunda reseña
+      const resena = await calificarSolicitud({ idSolicitud: solicitud.idSolicitud, puntuacion: estrellas, comentario });
+      const resultado = { resena };
       setAbierto(false);
       onCalificada?.({
         idCalificacion: resultado.resena?.idResena,
@@ -28,7 +27,7 @@ export default function CalificarSolicitud({ solicitud, onCalificada }) {
         comentario: resultado.resena?.comentario ?? comentario,
       });
     } catch (err) {
-      setError(err.message);
+      setError(errorSolicitud(err));
     } finally {
       setGuardando(false);
     }

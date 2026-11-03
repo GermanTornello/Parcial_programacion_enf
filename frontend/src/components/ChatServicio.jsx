@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { requestApi as api, sesionActual } from '../api';
+import { sesionActual } from '../api';
+import { enviarMensaje, errorSolicitud, obtenerMensajes, obtenerSolicitud } from '../services/solicitudes';
 
 // SCRUM-63 (Santiago): chat asociado a una solicitud. Contrato en backend/SPRINT5-INTEGRACION.md.
 export const INTERVALO_CHAT_MS = 3000;
-const MAX_CONTENIDO = 2000;
+// Mismo límite que el backend (contrato: texto de 1 a 1000 caracteres)
+const MAX_CONTENIDO = 1000;
 // Se puede escribir desde que el paciente pide el turno hasta que el servicio se cierra.
 export const CHAT_ABIERTO = ['Pendiente', 'Aceptada'];
 // Cerrada la conversación, queda como registro de lectura.
@@ -26,7 +28,8 @@ function horaLocal(fechaHora) {
 function unirMensajes(actuales, nuevos) {
   const porId = new Map(actuales.map((mensaje) => [mensaje.idMensaje, mensaje]));
   nuevos.forEach((mensaje) => porId.set(mensaje.idMensaje, mensaje));
-  return [...porId.values()].sort((a, b) => a.idMensaje - b.idMensaje);
+  // Los ids son de MongoDB (texto): el orden cronológico sale de la fecha
+  return [...porId.values()].sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora));
 }
 
 // En pantallas táctiles Enter agrega una línea; se envía con el botón.
@@ -41,7 +44,7 @@ export default function ChatServicio({
   const { idSolicitud } = solicitud;
   const [estado, setEstado] = useState(solicitud.estado);
   const habilitado = CHAT_ABIERTO.includes(estado);
-  const userId = Number(sesionActual()?.sub);
+  const userId = String(sesionActual()?.sub ?? '');
   const [mensajes, setMensajes] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState('');
@@ -72,15 +75,15 @@ export default function ChatServicio({
       consultando = true;
       controller = new AbortController();
       try {
-        const items = await api(`/solicitudes/${idSolicitud}/mensajes`, { signal: controller.signal });
+        const items = await obtenerMensajes(idSolicitud, controller.signal);
         if (!Array.isArray(items)) throw new Error('La respuesta de mensajes no es válida.');
         if (!activo) return;
         setMensajes((actuales) => unirMensajes(actuales, items));
         setErrorCarga('');
       } catch (err) {
-        if (!activo || err.name === 'AbortError') return;
-        setErrorCarga(err.message);
-        if (ERRORES_PERMANENTES.includes(err.status)) {
+        if (!activo || err.name === 'AbortError' || err.name === 'CanceledError') return;
+        setErrorCarga(errorSolicitud(err));
+        if (ERRORES_PERMANENTES.includes(err.response?.status)) {
           window.clearInterval(timer);
           setBloqueado(true);
         }
@@ -116,7 +119,7 @@ export default function ChatServicio({
   // Si el envío choca con un cambio de estado (409), se consulta el estado real y se cierra el chat.
   async function revisarEstado() {
     try {
-      const actual = await api(`/solicitudes/${idSolicitud}`);
+      const actual = await obtenerSolicitud(idSolicitud);
       if (actual?.estado && !CHAT_ABIERTO.includes(actual.estado)) {
         setEstado(actual.estado);
         onEstadoCambiado?.(actual);
@@ -136,18 +139,16 @@ export default function ChatServicio({
     setEnviando(true);
     setErrorEnvio('');
     try {
-      const mensaje = await api(`/solicitudes/${idSolicitud}/mensajes`, {
-        method: 'POST',
-        body: { contenido },
-      });
+      const mensaje = await enviarMensaje(idSolicitud, contenido);
       if (!mensaje?.idMensaje) throw new Error('El servidor no devolvió el mensaje enviado.');
       setMensajes((actuales) => unirMensajes(actuales, [mensaje]));
       setTexto('');
     } catch (err) {
-      const nuevoEstado = err.status === 409 ? await revisarEstado() : null;
+      // El backend responde 400 si la solicitud ya no está PENDIENTE ni ACEPTADA
+      const nuevoEstado = [400, 409].includes(err.response?.status) ? await revisarEstado() : null;
       setErrorEnvio(nuevoEstado
         ? `La solicitud pasó a ${nuevoEstado}: la conversación se cerró y tu mensaje no se envió.`
-        : err.message);
+        : errorSolicitud(err));
     } finally {
       ocupado.current = false;
       setEnviando(false);

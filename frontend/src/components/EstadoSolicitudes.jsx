@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { requestApi as api } from '../api';
 import { fechaLegible } from '../fechas';
-import { errorSolicitud, obtenerSolicitudesPaciente } from '../services/solicitudes';
+import { errorSolicitud, obtenerPerfilPropio, obtenerSolicitudesPaciente } from '../services/solicitudes';
 import {
   AccionesPaciente, DetalleEstado, NOTA_WHATSAPP_PACIENTE, calificacionesDelHistorial, whatsappParaPaciente,
 } from './AccionesSolicitud';
@@ -95,7 +94,7 @@ export default function EstadoSolicitudes() {
     const controller = new AbortController();
     setCargando(true);
     setError('');
-    api('/perfil/paciente', { signal: controller.signal })
+    obtenerPerfilPropio(controller.signal)
       .then((perfil) => {
         if (!perfil.idPaciente) throw new Error('No se encontró tu perfil de paciente.');
         idPaciente.current = perfil.idPaciente;
