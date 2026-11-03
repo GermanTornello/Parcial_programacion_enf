@@ -1,8 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { requestApi as api, enlaceWhatsapp } from '../api';
+import { enlaceWhatsapp } from '../api';
 import { DIAS_SEMANA, diaDeLaSemana, fechaLegible, fechaMaximaISO, hoyISO } from '../fechas';
-import { crearSolicitud, obtenerProfesional, obtenerServicios, errorSolicitud } from '../services/solicitudes';
+import {
+  actualizarTelefono,
+  crearSolicitud,
+  errorSolicitud,
+  obtenerPerfilPropio,
+  obtenerProfesional,
+  obtenerServicios,
+} from '../services/solicitudes';
 import './Solicitudes.css';
 
 const DURACION_POR_DEFECTO = 60;
@@ -86,7 +93,7 @@ export default function SolicitarServicio() {
       obtenerProfesional(id, controller.signal),
       obtenerServicios(controller.signal),
       // Si el perfil propio no carga igual se puede pedir el turno: solo no se precarga nada.
-      api('/perfil/paciente', { signal: controller.signal }).catch(() => null),
+      obtenerPerfilPropio(controller.signal).catch(() => null),
     ]).then(([profesional, catalogo, propio]) => {
       if (!Array.isArray(catalogo)) throw new Error('Catálogo inválido');
       if (controller.signal.aborted) return;
@@ -148,14 +155,15 @@ export default function SolicitarServicio() {
       if (pideTelefono) {
         // Se guarda en el perfil antes del pedido: el profesional lo necesita para avisar.
         try {
-          const actualizado = await api('/perfil/paciente', { method: 'PUT', body: { telefono: telefono.trim() } });
+          const actualizado = await actualizarTelefono(telefono.trim());
           setPaciente(actual => ({ ...actual, ...actualizado, telefono: actualizado?.telefono || telefono.trim() }));
-        } catch (err) { setError(err.message); return; }
+        } catch (err) { setError(errorSolicitud(err)); return; }
       }
       const respuesta = await crearSolicitud({
         ...datos,
-        idServicio: Number(datos.idServicio),
-        idEnfermero: Number(idEnfermero),
+        // Los ids son de MongoDB (texto): con Number() quedaban en NaN y el pedido fallaba
+        idServicio: String(datos.idServicio),
+        idEnfermero: String(idEnfermero),
         direccionAtencion: datos.direccionAtencion.trim(),
       });
       setCreada(true);

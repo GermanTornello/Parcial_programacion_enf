@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { requestApi as api, enlaceWhatsapp } from '../api';
+import { enlaceWhatsapp } from '../api';
 import { fechaLegible, turnoFuturo } from '../fechas';
 import {
   aceptarSolicitud,
   cancelarTurnoEnfermero,
   errorSolicitud,
   finalizarSolicitud,
+  obtenerPerfilPropio,
   obtenerSolicitudesEnfermero,
   rechazarSolicitud,
 } from '../services/solicitudes';
@@ -74,7 +75,7 @@ export default function SolicitudesEnfermero() {
     const controller = new AbortController();
     setCargando(true);
     setError('');
-    api('/perfil/enfermero', { signal: controller.signal })
+    obtenerPerfilPropio(controller.signal)
       .then((perfil) => {
         if (!perfil.idEnfermero) throw new Error('No se encontró el perfil profesional.');
         idEnfermero.current = perfil.idEnfermero;

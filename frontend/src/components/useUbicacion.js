@@ -1,66 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { requestApi } from '../api';
 import { RUTAS_URL } from './mapaConfig';
 
-// Dirección escrita <-> punto del mapa. Lo resuelve el servidor (Nominatim, de OpenStreetMap).
-export const buscarDireccion = (direccion, signal) =>
-  requestApi(`/geocodificar?direccion=${encodeURIComponent(direccion)}`, { signal });
-export const direccionDe = ([lat, lng], signal) => requestApi(`/geocodificar/inversa?lat=${lat}&lng=${lng}`, { signal });
-
-// Se espera a que la persona deje de escribir: no se busca en cada letra (y Nominatim pide pocos pedidos).
-export const ESPERA_DIRECCION_MS = 1200;
+// La búsqueda de direcciones de la cartilla está en src/api/cartilla.js (OpenStreetMap).
 const ESPERA_RUTA_MS = 6000;
-
-// Mientras `activo`, busca `texto` en el mapa al terminar de escribir y avisa con alEncontrar([lat, lng], lugar).
-// `pendiente` vale mientras falta la respuesta; `cancelar()` la descarta (por ejemplo, si la persona tocó el mapa).
-export function useBuscarDireccion(texto, activo, alEncontrar) {
-  const [estado, setEstado] = useState({ fase: 'idle', mensaje: '' });
-  const ultimo = useRef(alEncontrar);
-  const detener = useRef(null);
-  useEffect(() => {
-    ultimo.current = alEncontrar;
-  });
-  useEffect(() => {
-    const limpio = String(texto || '').trim();
-    if (!activo || limpio.length < 4) {
-      setEstado({ fase: 'idle', mensaje: '' });
-      return undefined;
-    }
-    const controller = new AbortController();
-    setEstado({ fase: 'esperando', mensaje: '' });
-    const timer = window.setTimeout(async () => {
-      setEstado({ fase: 'buscando', mensaje: 'Buscando la dirección en el mapa…' });
-      try {
-        const lugar = await buscarDireccion(limpio, controller.signal);
-        if (controller.signal.aborted) return;
-        if (!Number.isFinite(lugar?.latitud) || !Number.isFinite(lugar?.longitud)) throw new Error('Respuesta inválida');
-        ultimo.current?.([lugar.latitud, lugar.longitud], lugar);
-        setEstado({
-          fase: 'ok',
-          mensaje: `Ubicamos la dirección en el mapa${lugar.descripcion ? ` (${lugar.descripcion})` : ''}. Si el punto no es exacto, tocá el lugar correcto.`,
-        });
-      } catch (error) {
-        if (controller.signal.aborted || error.name === 'AbortError') return;
-        setEstado({
-          fase: error.status === 404 ? 'no' : 'error',
-          mensaje: error.status === 404 || error.status === 503
-            ? error.message
-            : 'No pudimos buscar la dirección en este momento. Marcá el lugar tocando el mapa.',
-        });
-      }
-    }, ESPERA_DIRECCION_MS);
-    detener.current = () => {
-      window.clearTimeout(timer);
-      controller.abort();
-    };
-    return () => detener.current?.();
-  }, [texto, activo]);
-  const cancelar = useCallback(() => {
-    detener.current?.();
-    setEstado(actual => (actual.fase === 'esperando' || actual.fase === 'buscando' ? { fase: 'idle', mensaje: '' } : actual));
-  }, []);
-  return { ...estado, pendiente: estado.fase === 'esperando' || estado.fase === 'buscando', cancelar };
-}
 
 const MENSAJES_GEOLOCALIZACION = {
   1: 'Permití el acceso a tu ubicación en el navegador y volvé a intentarlo.',

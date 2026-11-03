@@ -28,7 +28,7 @@
 .consentimiento input { flex-shrink: 0; width: 22px; height: 22px; margin-top: 1px; accent-color: var(--blue); }
 .consentimiento a { color: var(--blue-dark); font-weight: 600; }
 
-/* Enlaces legales en pies de pÃ¡gina */
+/* Enlaces legales en pies de página */
 .footer-legal { display: flex; flex-wrap: wrap; gap: 16px; }
 .footer-legal a { display: inline-flex; align-items: center; min-height: 44px; color: var(--muted); }
 .footer-legal a:hover { color: var(--blue-dark); }
